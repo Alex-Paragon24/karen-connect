@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Karen · Let's connect</title>
+<meta name="description" content="Tap, watch, scan: connect with Karen on LinkedIn.">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#1a1410">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Karen">
+<meta name="format-detection" content="telephone=no">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Karen · Let's connect">
+<meta property="og:description" content="Tap, watch, scan.">
+<meta property="og:image" content="https://karen-connect.pages.dev/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<link rel="preload" href="/fonts/playfair-display-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/lato-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<script>
+  // До первой отрисовки: восстанавливаем выбранный стиль и режим, чтобы не было мигания.
+  // Без JS страница сразу показывает QR (состояние по умолчанию в CSS).
+  (function () {
+    var d = document.documentElement, s = null, a = null;
+    try { s = localStorage.getItem('kc:style'); a = localStorage.getItem('kc:anim'); } catch (e) {}
+    var reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (s === 'gold' || s === 'rose' || s === 'day') d.setAttribute('data-style', s);
+    d.setAttribute('data-state', (a === '0' || reduced) ? 'settled' : 'ready');
+    d.className += ' js';
+  })();
+</script>
+<style>
+  /* ---------- Шрифты: свои файлы, никаких запросов к Google ---------- */
+  @font-face { font-family: 'Playfair Display'; font-style: italic; font-weight: 400; font-display: swap;
+    src: url(/fonts/playfair-display-latin-400-italic.woff2) format('woff2'); }
+  @font-face { font-family: 'Lato'; font-style: normal; font-weight: 400; font-display: swap;
+    src: url(/fonts/lato-latin-400-normal.woff2) format('woff2'); }
+  @font-face { font-family: 'Lato'; font-style: normal; font-weight: 700; font-display: swap;
+    src: url(/fonts/lato-latin-700-normal.woff2) format('woff2'); }
+
+  /* ---------- Токены ---------- */
+  :root {
+    --bg: #1a1410;               /* тёплый тёмный, не чёрный */
+    --ink: #fbf3dd;
+    --muted: rgba(251, 243, 221, .74);
+    --gold: #d4a017;
+    --gold-bright: #f5c842;
+    --champagne: #f3e3b5;
+    --glass: rgba(26, 20, 16, .5);
+    --line: rgba(245, 200, 66, .42);
+    --scrim: rgba(18, 13, 9, .62);
+    --safe-t: env(safe-area-inset-top, 0px);
+    --safe-b: env(safe-area-inset-bottom, 0px);
+    --ease: cubic-bezier(.2, .75, .2, 1);
+  }
+  html[data-style="day"] {
+    --bg: #f4ead6;
+    --ink: #3a3020;
+    --muted: rgba(58, 48, 32, .74);
+    --champagne: #7a6840;
+    --glass: rgba(255, 253, 245, .66);
+    --line: rgba(212, 160, 23, .5);
+    --scrim: rgba(255, 250, 238, .7);
+  }
+
+  /* ---------- Кадры и позиция QR для каждого стиля (генерирует tools/build.mjs) ---------- */
+  /*STYLES:START*/
+  :root, html[data-style="gold"] { --start: url(/media/gold/start.webp); --end: url(/media/gold/end.webp); --ar: 1076 / 1928; --arw: 0.558091; --qx: 25.6365%; --qy: 36.4029%; --qw: 48.7270%; }
+  html[data-style="rose"] { --start: url(/media/rose/start.webp); --end: url(/media/rose/end.webp); --ar: 1076 / 1928; --arw: 0.558091; --qx: 25.6365%; --qy: 36.4029%; --qw: 48.7270%; }
+  html[data-style="day"] { --start: url(/media/day/start.webp); --end: url(/media/day/end.webp); --ar: 1076 / 1928; --arw: 0.558091; --qx: 25.6365%; --qy: 36.4029%; --qw: 48.7270%; }
+  /*STYLES:END*/
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--ink); overflow: hidden;
+    -webkit-tap-highlight-color: transparent; -webkit-text-size-adjust: 100%; }
+  body { font: 400 15px/1.4 'Lato', system-ui, -apple-system, sans-serif; overscroll-behavior: none;
+    -webkit-user-select: none; user-select: none; touch-action: manipulation; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+
+  /* ---------- Сцена: кадр 9:16 на всю высоту. На телефоне обрезаются только бока (cover),
+     на широких экранах кадр целиком по центру (contain) ---------- */
+  .backdrop { position: fixed; inset: -10%; background: var(--end) center / cover no-repeat, var(--bg);
+    filter: blur(28px) brightness(.55); }
+  .stage { position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
+    width: max(100vw, calc(100vh * var(--arw))); width: max(100vw, calc(100dvh * var(--arw)));
+    aspect-ratio: var(--ar); overflow: hidden; background: var(--bg); }
+  @media (min-aspect-ratio: 13/20) {
+    .stage { width: calc(100vh * var(--arw)); width: calc(100dvh * var(--arw)); }
+  }
+  .layer { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+    background-position: center; background-size: cover; background-repeat: no-repeat; }
+  .start { background-image: var(--start); }
+  .end { background-image: var(--end); opacity: 0; }
+  .reveal { opacity: 0; transition: opacity .12s linear; }
+
+  /* ---------- QR: вектор, чёрное на белом, тихая зона внутри SVG ---------- */
+  .qr { position: absolute; left: var(--qx); top: var(--qy); width: var(--qw); aspect-ratio: 1;
+    background: #fff; opacity: 0; display: block; pointer-events: none; }
+  html:not(.js) .qr, html[data-state="settled"] .qr { pointer-events: auto; }
+  .qr svg { display: block; width: 100%; height: 100%; shape-rendering: crispEdges; }
+
+  /* ---------- Блик на стыке видео и векторного QR ---------- */
+  .glint { position: absolute; inset: 0; pointer-events: none; opacity: 0;
+    background: linear-gradient(112deg, transparent 32%, rgba(255, 244, 199, .55) 47%, rgba(255, 255, 255, .8) 50%, rgba(255, 244, 199, .5) 53%, transparent 68%);
+    background-size: 260% 100%; mix-blend-mode: screen; }
+  html.glinting .glint { animation: glint .95s var(--ease) forwards; }
+  @keyframes glint { 0% { opacity: 1; background-position: 115% 0; } 100% { opacity: 0; background-position: -45% 0; } }
+
+  /* ---------- Состояния ---------- */
+  /* без JS или после reveal: финальный кадр + QR */
+  html:not(.js) .end, html[data-state="settled"] .end { opacity: 1; }
+  html:not(.js) .qr, html[data-state="settled"] .qr { opacity: 1; }
+  html[data-state="revealing"] .reveal.playing { opacity: 1; }
+  /* мягкий reveal без видео (не успело скачаться, Low Power Mode) */
+  html.fallback .end, html.fallback .qr { opacity: 1; animation: fallbackIn 1.05s var(--ease) both; }
+  @keyframes fallbackIn { from { opacity: 0; transform: scale(.9); filter: blur(8px) brightness(1.6); } to { opacity: 1; transform: none; filter: none; } }
+
+  /* ---------- Тексты ---------- */
+  .eyebrow { font: 700 12px/1.2 'Lato', sans-serif; letter-spacing: .34em; text-transform: uppercase;
+    color: var(--champagne); padding-left: .34em; }
+  .name { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-weight: 400; line-height: 1;
+    padding: 0 .08em .06em; color: var(--gold-bright);
+    background: linear-gradient(100deg, #b8860b 0%, #f5c842 26%, #fff3c4 44%, #d4a017 60%, #f5c842 78%, #b8860b 100%);
+    background-size: 240% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    animation: sheen 7s ease-in-out infinite; }
+  html[data-style="day"] .name { background-image: linear-gradient(100deg, #8a6508 0%, #c9930f 30%, #e8b93a 46%, #a87c0c 62%, #c9930f 80%, #8a6508 100%); }
+  @keyframes sheen { 0%, 100% { background-position: 0% 0; } 50% { background-position: 100% 0; } }
+
+  .intro { position: fixed; left: 0; right: 0; bottom: calc(15vh + var(--safe-b)); text-align: center;
+    pointer-events: none; transition: opacity .45s ease, transform .6s var(--ease); }
+  .intro::before { content: ''; position: absolute; left: 50%; top: 50%; width: 150vw; height: 260px;
+    transform: translate(-50%, -50%); background: radial-gradient(closest-side, var(--scrim), transparent); z-index: -1; }
+  .intro .name { font-size: clamp(68px, 23vw, 112px); display: inline-block; margin-top: 6px; }
+  .hint { margin-top: 26px; font: 400 12px/1 'Lato', sans-serif; letter-spacing: .28em; text-transform: uppercase;
+    color: var(--muted); animation: breathe 2.6s ease-in-out infinite; }
+  .hint i { display: inline-block; width: 6px; height: 6px; margin: 0 10px 1px 0; border-radius: 50%;
+    background: var(--gold-bright); box-shadow: 0 0 10px var(--gold-bright); vertical-align: middle; }
+  @keyframes breathe { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+
+  .top { position: fixed; left: 0; right: 0; top: calc(var(--safe-t) + 14px); text-align: center; pointer-events: none;
+    transition: opacity .5s ease .15s, transform .7s var(--ease) .15s; }
+  .top .name { font-size: 42px; display: inline-block; }
+  .top .eyebrow { margin-top: 4px; }
+
+  .bottom { position: fixed; left: 0; right: 0; bottom: calc(var(--safe-b) + 16px); text-align: center;
+    transition: opacity .5s ease .25s, transform .7s var(--ease) .25s; }
+  .caption { font: 400 15px/1.3 'Lato', sans-serif; letter-spacing: .04em; color: var(--ink);
+    display: inline-block; padding: 7px 14px; border-radius: 99px; background: var(--glass);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+  .controls { display: flex; justify-content: center; gap: 12px; margin-top: 14px; }
+  .btn { min-width: 46px; height: 46px; padding: 0 14px; border-radius: 23px; display: inline-flex; align-items: center;
+    justify-content: center; gap: 8px; background: var(--glass); border: 1px solid var(--line); color: var(--ink);
+    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); font: 700 12px/1 'Lato', sans-serif;
+    letter-spacing: .14em; text-transform: uppercase; transition: transform .15s ease; }
+  .btn:active { transform: scale(.94); }
+  .btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* какие тексты видны в каком состоянии */
+  .intro, .top, .bottom { opacity: 0; transform: translateY(8px); pointer-events: none; }
+  html[data-state="ready"] .intro { opacity: 1; transform: none; }
+  html:not(.js) .top, html[data-state="settled"] .top { opacity: 1; transform: none; }
+  html:not(.js) .bottom, html[data-state="settled"] .bottom { opacity: 1; transform: none; pointer-events: auto; }
+  html:not(.js) .controls { display: none; }
+
+  /* ---------- Максимальный QR: белый экран для плохого света ---------- */
+  .max { position: fixed; inset: 0; z-index: 40; background: #fff; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 18px; }
+  .max[hidden] { display: none; }
+  .max-qr { width: min(90vw, 68vh); aspect-ratio: 1; }
+  .max-qr svg { display: block; width: 100%; height: 100%; shape-rendering: crispEdges; }
+  .max p { font: 400 14px/1.3 'Lato', sans-serif; letter-spacing: .12em; color: #3a3020; text-align: center; }
+  .max p b { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-weight: 400; font-size: 26px; letter-spacing: 0; display: block; color: #3a3020; }
+
+  /* ---------- Выбор стиля ---------- */
+  .sheet { position: fixed; inset: 0; z-index: 30; display: flex; align-items: flex-end; background: rgba(10, 8, 6, .45); }
+  .sheet[hidden] { display: none; }
+  .sheet-card { width: 100%; padding: 22px 18px calc(var(--safe-b) + 18px); border-radius: 22px 22px 0 0;
+    background: rgba(26, 20, 16, .92); color: #fbf3dd; -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(245, 200, 66, .35); animation: up .35s var(--ease); }
+  @keyframes up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .sheet-title { font: 700 12px/1 'Lato', sans-serif; letter-spacing: .3em; text-transform: uppercase; color: #f3e3b5; text-align: center; }
+  .swatches { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 18px 0 16px; }
+  .swatch { display: flex; flex-direction: column; align-items: center; gap: 8px; font: 400 13px/1.2 'Lato', sans-serif; color: #fbf3dd; }
+  .swatch i { display: block; width: 100%; aspect-ratio: 3 / 4; border-radius: 12px; background: center / cover no-repeat;
+    border: 2px solid transparent; }
+  .swatch[aria-pressed="true"] i { border-color: #f5c842; box-shadow: 0 0 0 3px rgba(245, 200, 66, .25); }
+  .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 4px;
+    border-top: 1px solid rgba(251, 243, 221, .12); font: 400 15px/1.3 'Lato', sans-serif; }
+  .row small { display: block; color: rgba(251, 243, 221, .6); font-size: 12px; margin-top: 2px; }
+  .switch { width: 50px; height: 30px; border-radius: 15px; background: rgba(251, 243, 221, .2); position: relative; flex: none; transition: background .2s; }
+  .switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fbf3dd; transition: transform .2s var(--ease); }
+  .switch[aria-checked="true"] { background: #d4a017; }
+  .switch[aria-checked="true"]::after { transform: translateX(20px); }
+  .done { width: 100%; height: 48px; margin-top: 10px; border-radius: 14px; background: #d4a017; color: #1a1410;
+    font: 700 13px/1 'Lato', sans-serif; letter-spacing: .2em; text-transform: uppercase; }
+
+  .toast { position: fixed; left: 50%; bottom: calc(var(--safe-b) + 130px); transform: translate(-50%, 10px); z-index: 60;
+    padding: 10px 16px; border-radius: 99px; background: rgba(26, 20, 16, .9); color: #fbf3dd; font: 400 14px/1 'Lato', sans-serif;
+    opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  @media (prefers-reduced-motion: reduce) {
+    .name, .hint { animation: none; }
+    html.glinting .glint { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div class="backdrop" aria-hidden="true"></div>
+
+<main class="stage" id="stage">
+  <div class="layer start" aria-hidden="true"></div>
+  <div class="layer end" aria-hidden="true"></div>
+  <video class="layer reveal" id="video" muted playsinline preload="none" disablepictureinpicture disableremoteplayback aria-hidden="true"></video>
+  <div class="glint" aria-hidden="true"></div>
+  <button class="qr" id="qr" type="button" aria-label="QR code for Karen's LinkedIn profile. Tap to enlarge.">
+    <!--QR:START--><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 41 41" shape-rendering="crispEdges" aria-hidden="true"><rect width="41" height="41" fill="#fff"/><path fill="#000" d="M4 4h7v1h-7zM12 4h1v1h-1zM14 4h2v1h-2zM17 4h1v1h-1zM20 4h5v1h-5zM27 4h1v1h-1zM30 4h7v1h-7zM4 5h1v1h-1zM10 5h1v1h-1zM12 5h1v1h-1zM14 5h1v1h-1zM16 5h2v1h-2zM20 5h1v1h-1zM22 5h1v1h-1zM24 5h4v1h-4zM30 5h1v1h-1zM36 5h1v1h-1zM4 6h1v1h-1zM6 6h3v1h-3zM10 6h1v1h-1zM14 6h3v1h-3zM19 6h3v1h-3zM24 6h1v1h-1zM26 6h1v1h-1zM28 6h1v1h-1zM30 6h1v1h-1zM32 6h3v1h-3zM36 6h1v1h-1zM4 7h1v1h-1zM6 7h3v1h-3zM10 7h1v1h-1zM12 7h1v1h-1zM14 7h2v1h-2zM18 7h1v1h-1zM20 7h1v1h-1zM23 7h2v1h-2zM26 7h3v1h-3zM30 7h1v1h-1zM32 7h3v1h-3zM36 7h1v1h-1zM4 8h1v1h-1zM6 8h3v1h-3zM10 8h1v1h-1zM13 8h1v1h-1zM16 8h1v1h-1zM18 8h1v1h-1zM21 8h1v1h-1zM24 8h2v1h-2zM28 8h1v1h-1zM30 8h1v1h-1zM32 8h3v1h-3zM36 8h1v1h-1zM4 9h1v1h-1zM10 9h1v1h-1zM17 9h1v1h-1zM21 9h1v1h-1zM23 9h2v1h-2zM26 9h1v1h-1zM28 9h1v1h-1zM30 9h1v1h-1zM36 9h1v1h-1zM4 10h7v1h-7zM12 10h1v1h-1zM14 10h1v1h-1zM16 10h1v1h-1zM18 10h1v1h-1zM20 10h1v1h-1zM22 10h1v1h-1zM24 10h1v1h-1zM26 10h1v1h-1zM28 10h1v1h-1zM30 10h7v1h-7zM12 11h1v1h-1zM14 11h1v1h-1zM16 11h1v1h-1zM21 11h2v1h-2zM24 11h1v1h-1zM26 11h3v1h-3zM4 12h1v1h-1zM6 12h2v1h-2zM9 12h3v1h-3zM14 12h1v1h-1zM16 12h1v1h-1zM18 12h1v1h-1zM20 12h4v1h-4zM25 12h1v1h-1zM30 12h1v1h-1zM33 12h1v1h-1zM35 12h2v1h-2zM4 13h1v1h-1zM6 13h1v1h-1zM8 13h2v1h-2zM11 13h4v1h-4zM18 13h1v1h-1zM20 13h1v1h-1zM22 13h2v1h-2zM27 13h1v1h-1zM30 13h2v1h-2zM33 13h2v1h-2zM36 13h1v1h-1zM5 14h1v1h-1zM8 14h1v1h-1zM10 14h2v1h-2zM14 14h1v1h-1zM16 14h1v1h-1zM18 14h1v1h-1zM20 14h2v1h-2zM24 14h4v1h-4zM30 14h4v1h-4zM36 14h1v1h-1zM6 15h1v1h-1zM9 15h1v1h-1zM13 15h1v1h-1zM17 15h3v1h-3zM22 15h1v1h-1zM24 15h1v1h-1zM27 15h5v1h-5zM33 15h1v1h-1zM35 15h2v1h-2zM6 16h5v1h-5zM12 16h1v1h-1zM14 16h3v1h-3zM22 16h2v1h-2zM26 16h2v1h-2zM29 16h1v1h-1zM32 16h2v1h-2zM35 16h2v1h-2zM4 17h1v1h-1zM6 17h2v1h-2zM20 17h1v1h-1zM22 17h1v1h-1zM25 17h2v1h-2zM28 17h1v1h-1zM31 17h1v1h-1zM34 17h2v1h-2zM8 18h3v1h-3zM12 18h2v1h-2zM17 18h1v1h-1zM19 18h4v1h-4zM25 18h1v1h-1zM28 18h1v1h-1zM30 18h4v1h-4zM4 19h2v1h-2zM9 19h1v1h-1zM12 19h2v1h-2zM15 19h1v1h-1zM17 19h1v1h-1zM20 19h1v1h-1zM23 19h3v1h-3zM29 19h6v1h-6zM4 20h1v1h-1zM9 20h2v1h-2zM13 20h3v1h-3zM18 20h2v1h-2zM22 20h5v1h-5zM29 20h2v1h-2zM32 20h1v1h-1zM34 20h1v1h-1zM4 21h1v1h-1zM8 21h1v1h-1zM11 21h3v1h-3zM16 21h1v1h-1zM19 21h3v1h-3zM24 21h4v1h-4zM30 21h1v1h-1zM32 21h2v1h-2zM35 21h2v1h-2zM5 22h1v1h-1zM8 22h1v1h-1zM10 22h2v1h-2zM13 22h2v1h-2zM19 22h1v1h-1zM21 22h1v1h-1zM24 22h1v1h-1zM29 22h1v1h-1zM31 22h2v1h-2zM34 22h2v1h-2zM4 23h1v1h-1zM6 23h2v1h-2zM13 23h1v1h-1zM16 23h5v1h-5zM24 23h1v1h-1zM28 23h3v1h-3zM32 23h1v1h-1zM35 23h2v1h-2zM6 24h2v1h-2zM10 24h6v1h-6zM19 24h1v1h-1zM22 24h1v1h-1zM24 24h3v1h-3zM33 24h2v1h-2zM4 25h1v1h-1zM6 25h1v1h-1zM12 25h4v1h-4zM19 25h1v1h-1zM21 25h2v1h-2zM27 25h1v1h-1zM29 25h2v1h-2zM34 25h1v1h-1zM36 25h1v1h-1zM8 26h1v1h-1zM10 26h2v1h-2zM15 26h3v1h-3zM20 26h3v1h-3zM25 26h1v1h-1zM27 26h5v1h-5zM33 26h4v1h-4zM5 27h3v1h-3zM13 27h1v1h-1zM16 27h1v1h-1zM20 27h1v1h-1zM22 27h2v1h-2zM28 27h1v1h-1zM30 27h2v1h-2zM33 27h1v1h-1zM35 27h1v1h-1zM4 28h1v1h-1zM7 28h2v1h-2zM10 28h1v1h-1zM12 28h1v1h-1zM16 28h2v1h-2zM19 28h1v1h-1zM21 28h2v1h-2zM26 28h7v1h-7zM12 29h1v1h-1zM15 29h7v1h-7zM23 29h1v1h-1zM25 29h1v1h-1zM28 29h1v1h-1zM32 29h2v1h-2zM4 30h7v1h-7zM12 30h1v1h-1zM16 30h1v1h-1zM23 30h1v1h-1zM25 30h1v1h-1zM27 30h2v1h-2zM30 30h1v1h-1zM32 30h1v1h-1zM4 31h1v1h-1zM10 31h1v1h-1zM12 31h4v1h-4zM19 31h1v1h-1zM24 31h5v1h-5zM32 31h3v1h-3zM36 31h1v1h-1zM4 32h1v1h-1zM6 32h3v1h-3zM10 32h1v1h-1zM13 32h7v1h-7zM21 32h1v1h-1zM24 32h1v1h-1zM27 32h6v1h-6zM34 32h1v1h-1zM36 32h1v1h-1zM4 33h1v1h-1zM6 33h3v1h-3zM10 33h1v1h-1zM12 33h1v1h-1zM17 33h1v1h-1zM21 33h4v1h-4zM26 33h3v1h-3zM31 33h1v1h-1zM36 33h1v1h-1zM4 34h1v1h-1zM6 34h3v1h-3zM10 34h1v1h-1zM12 34h1v1h-1zM15 34h4v1h-4zM21 34h1v1h-1zM23 34h1v1h-1zM25 34h7v1h-7zM33 34h2v1h-2zM4 35h1v1h-1zM10 35h1v1h-1zM15 35h9v1h-9zM26 35h3v1h-3zM31 35h2v1h-2zM36 35h1v1h-1zM4 36h7v1h-7zM12 36h1v1h-1zM14 36h2v1h-2zM17 36h1v1h-1zM19 36h4v1h-4zM25 36h1v1h-1zM29 36h2v1h-2zM32 36h1v1h-1zM34 36h1v1h-1z"/></svg><!--QR:END-->
+  </button>
+</main>
+
+<section class="intro" aria-hidden="true">
+  <p class="eyebrow">Let's connect</p>
+  <h1 class="name">Karen</h1>
+  <p class="hint"><i></i>Tap to reveal</p>
+</section>
+
+<header class="top">
+  <p class="name">Karen</p>
+  <p class="eyebrow">Let's connect</p>
+</header>
+
+<footer class="bottom">
+  <p class="caption">Scan to connect on LinkedIn</p>
+  <nav class="controls" aria-label="Controls">
+    <button class="btn" id="btnReplay" type="button" aria-label="Replay the reveal">
+      <svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7"/><path d="M4 4v4.5h4.5"/></svg>
+    </button>
+    <button class="btn" id="btnShare" type="button" aria-label="Share the LinkedIn link">
+      <svg viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M7.5 7.5 12 3l4.5 4.5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>
+      <span>Share</span>
+    </button>
+    <button class="btn" id="btnMax" type="button" aria-label="Show a bigger QR code">
+      <svg viewBox="0 0 24 24"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg>
+    </button>
+    <button class="btn" id="btnStyle" type="button" aria-label="Change style">
+      <svg viewBox="0 0 24 24"><path d="M12 3c.6 4.2 2.8 6.4 7 7-4.2.6-6.4 2.8-7 7-.6-4.2-2.8-6.4-7-7 4.2-.6 6.4-2.8 7-7Z"/></svg>
+    </button>
+  </nav>
+</footer>
+
+<div class="max" id="max" hidden>
+  <div class="max-qr">
+    <!--QR:START--><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 41 41" shape-rendering="crispEdges" aria-hidden="true"><rect width="41" height="41" fill="#fff"/><path fill="#000" d="M4 4h7v1h-7zM12 4h1v1h-1zM14 4h2v1h-2zM17 4h1v1h-1zM20 4h5v1h-5zM27 4h1v1h-1zM30 4h7v1h-7zM4 5h1v1h-1zM10 5h1v1h-1zM12 5h1v1h-1zM14 5h1v1h-1zM16 5h2v1h-2zM20 5h1v1h-1zM22 5h1v1h-1zM24 5h4v1h-4zM30 5h1v1h-1zM36 5h1v1h-1zM4 6h1v1h-1zM6 6h3v1h-3zM10 6h1v1h-1zM14 6h3v1h-3zM19 6h3v1h-3zM24 6h1v1h-1zM26 6h1v1h-1zM28 6h1v1h-1zM30 6h1v1h-1zM32 6h3v1h-3zM36 6h1v1h-1zM4 7h1v1h-1zM6 7h3v1h-3zM10 7h1v1h-1zM12 7h1v1h-1zM14 7h2v1h-2zM18 7h1v1h-1zM20 7h1v1h-1zM23 7h2v1h-2zM26 7h3v1h-3zM30 7h1v1h-1zM32 7h3v1h-3zM36 7h1v1h-1zM4 8h1v1h-1zM6 8h3v1h-3zM10 8h1v1h-1zM13 8h1v1h-1zM16 8h1v1h-1zM18 8h1v1h-1zM21 8h1v1h-1zM24 8h2v1h-2zM28 8h1v1h-1zM30 8h1v1h-1zM32 8h3v1h-3zM36 8h1v1h-1zM4 9h1v1h-1zM10 9h1v1h-1zM17 9h1v1h-1zM21 9h1v1h-1zM23 9h2v1h-2zM26 9h1v1h-1zM28 9h1v1h-1zM30 9h1v1h-1zM36 9h1v1h-1zM4 10h7v1h-7zM12 10h1v1h-1zM14 10h1v1h-1zM16 10h1v1h-1zM18 10h1v1h-1zM20 10h1v1h-1zM22 10h1v1h-1zM24 10h1v1h-1zM26 10h1v1h-1zM28 10h1v1h-1zM30 10h7v1h-7zM12 11h1v1h-1zM14 11h1v1h-1zM16 11h1v1h-1zM21 11h2v1h-2zM24 11h1v1h-1zM26 11h3v1h-3zM4 12h1v1h-1zM6 12h2v1h-2zM9 12h3v1h-3zM14 12h1v1h-1zM16 12h1v1h-1zM18 12h1v1h-1zM20 12h4v1h-4zM25 12h1v1h-1zM30 12h1v1h-1zM33 12h1v1h-1zM35 12h2v1h-2zM4 13h1v1h-1zM6 13h1v1h-1zM8 13h2v1h-2zM11 13h4v1h-4zM18 13h1v1h-1zM20 13h1v1h-1zM22 13h2v1h-2zM27 13h1v1h-1zM30 13h2v1h-2zM33 13h2v1h-2zM36 13h1v1h-1zM5 14h1v1h-1zM8 14h1v1h-1zM10 14h2v1h-2zM14 14h1v1h-1zM16 14h1v1h-1zM18 14h1v1h-1zM20 14h2v1h-2zM24 14h4v1h-4zM30 14h4v1h-4zM36 14h1v1h-1zM6 15h1v1h-1zM9 15h1v1h-1zM13 15h1v1h-1zM17 15h3v1h-3zM22 15h1v1h-1zM24 15h1v1h-1zM27 15h5v1h-5zM33 15h1v1h-1zM35 15h2v1h-2zM6 16h5v1h-5zM12 16h1v1h-1zM14 16h3v1h-3zM22 16h2v1h-2zM26 16h2v1h-2zM29 16h1v1h-1zM32 16h2v1h-2zM35 16h2v1h-2zM4 17h1v1h-1zM6 17h2v1h-2zM20 17h1v1h-1zM22 17h1v1h-1zM25 17h2v1h-2zM28 17h1v1h-1zM31 17h1v1h-1zM34 17h2v1h-2zM8 18h3v1h-3zM12 18h2v1h-2zM17 18h1v1h-1zM19 18h4v1h-4zM25 18h1v1h-1zM28 18h1v1h-1zM30 18h4v1h-4zM4 19h2v1h-2zM9 19h1v1h-1zM12 19h2v1h-2zM15 19h1v1h-1zM17 19h1v1h-1zM20 19h1v1h-1zM23 19h3v1h-3zM29 19h6v1h-6zM4 20h1v1h-1zM9 20h2v1h-2zM13 20h3v1h-3zM18 20h2v1h-2zM22 20h5v1h-5zM29 20h2v1h-2zM32 20h1v1h-1zM34 20h1v1h-1zM4 21h1v1h-1zM8 21h1v1h-1zM11 21h3v1h-3zM16 21h1v1h-1zM19 21h3v1h-3zM24 21h4v1h-4zM30 21h1v1h-1zM32 21h2v1h-2zM35 21h2v1h-2zM5 22h1v1h-1zM8 22h1v1h-1zM10 22h2v1h-2zM13 22h2v1h-2zM19 22h1v1h-1zM21 22h1v1h-1zM24 22h1v1h-1zM29 22h1v1h-1zM31 22h2v1h-2zM34 22h2v1h-2zM4 23h1v1h-1zM6 23h2v1h-2zM13 23h1v1h-1zM16 23h5v1h-5zM24 23h1v1h-1zM28 23h3v1h-3zM32 23h1v1h-1zM35 23h2v1h-2zM6 24h2v1h-2zM10 24h6v1h-6zM19 24h1v1h-1zM22 24h1v1h-1zM24 24h3v1h-3zM33 24h2v1h-2zM4 25h1v1h-1zM6 25h1v1h-1zM12 25h4v1h-4zM19 25h1v1h-1zM21 25h2v1h-2zM27 25h1v1h-1zM29 25h2v1h-2zM34 25h1v1h-1zM36 25h1v1h-1zM8 26h1v1h-1zM10 26h2v1h-2zM15 26h3v1h-3zM20 26h3v1h-3zM25 26h1v1h-1zM27 26h5v1h-5zM33 26h4v1h-4zM5 27h3v1h-3zM13 27h1v1h-1zM16 27h1v1h-1zM20 27h1v1h-1zM22 27h2v1h-2zM28 27h1v1h-1zM30 27h2v1h-2zM33 27h1v1h-1zM35 27h1v1h-1zM4 28h1v1h-1zM7 28h2v1h-2zM10 28h1v1h-1zM12 28h1v1h-1zM16 28h2v1h-2zM19 28h1v1h-1zM21 28h2v1h-2zM26 28h7v1h-7zM12 29h1v1h-1zM15 29h7v1h-7zM23 29h1v1h-1zM25 29h1v1h-1zM28 29h1v1h-1zM32 29h2v1h-2zM4 30h7v1h-7zM12 30h1v1h-1zM16 30h1v1h-1zM23 30h1v1h-1zM25 30h1v1h-1zM27 30h2v1h-2zM30 30h1v1h-1zM32 30h1v1h-1zM4 31h1v1h-1zM10 31h1v1h-1zM12 31h4v1h-4zM19 31h1v1h-1zM24 31h5v1h-5zM32 31h3v1h-3zM36 31h1v1h-1zM4 32h1v1h-1zM6 32h3v1h-3zM10 32h1v1h-1zM13 32h7v1h-7zM21 32h1v1h-1zM24 32h1v1h-1zM27 32h6v1h-6zM34 32h1v1h-1zM36 32h1v1h-1zM4 33h1v1h-1zM6 33h3v1h-3zM10 33h1v1h-1zM12 33h1v1h-1zM17 33h1v1h-1zM21 33h4v1h-4zM26 33h3v1h-3zM31 33h1v1h-1zM36 33h1v1h-1zM4 34h1v1h-1zM6 34h3v1h-3zM10 34h1v1h-1zM12 34h1v1h-1zM15 34h4v1h-4zM21 34h1v1h-1zM23 34h1v1h-1zM25 34h7v1h-7zM33 34h2v1h-2zM4 35h1v1h-1zM10 35h1v1h-1zM15 35h9v1h-9zM26 35h3v1h-3zM31 35h2v1h-2zM36 35h1v1h-1zM4 36h7v1h-7zM12 36h1v1h-1zM14 36h2v1h-2zM17 36h1v1h-1zM19 36h4v1h-4zM25 36h1v1h-1zM29 36h2v1h-2zM32 36h1v1h-1zM34 36h1v1h-1z"/></svg><!--QR:END-->
+  </div>
+  <p><b>Karen</b>Scan to connect on LinkedIn</p>
+</div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet-card" role="dialog" aria-modal="true" aria-label="Style">
+    <p class="sheet-title">Style</p>
+    <div class="swatches" id="swatches"></div>
+    <div class="row">
+      <span>Reveal animation<small>Off: the QR shows right away</small></span>
+      <button class="switch" id="animSwitch" type="button" role="switch" aria-checked="true" aria-label="Reveal animation"></button>
+    </div>
+    <div class="row">
+      <span>Offline<small id="offline">Checking…</small></span>
+    </div>
+    <button class="done" id="sheetDone" type="button">Done</button>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function () {
+  'use strict';
+  // Ссылка, на которую ведёт QR. Сам QR вшит в разметку заранее (tools/build.mjs), здесь только для кнопки Share.
+  var LINKEDIN = 'https://www.linkedin.com/in/karen-ramirez-munoz/';
+  // Стили: подписи, цвет статус-бара, длительность ролика. Генерирует tools/build.mjs.
+  var STYLES = /*CONFIG:START*/{"gold":{"label":"Gold Night","theme":"#1a1410","dur":5},"rose":{"label":"Rose Dusk","theme":"#2a1a18","dur":5},"day":{"label":"Daylight","theme":"#f4ead6","dur":5}}/*CONFIG:END*/;
+
+  var root = document.documentElement;
+  var $ = function (id) { return document.getElementById(id); };
+  var video = $('video');
+  var reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var style = STYLES[root.getAttribute('data-style')] ? root.getAttribute('data-style') : 'gold';
+  var anim = !reduced && lsGet('kc:anim') !== '0';
+  var state = root.getAttribute('data-state') || 'ready';
+  var clips = {};      // стиль -> blob: URL готового ролика
+  var loading = {};
+  var settleTimer = 0;
+  var wakeLock = null;
+
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }
+
+  function setState(s) {
+    state = s;
+    root.setAttribute('data-state', s);
+  }
+
+  // Ролик скачиваем целиком в blob: так Safari играет его без Range-запросов, а SW отдаёт из кэша офлайн
+  function preload(s) {
+    if (!anim || clips[s] || loading[s]) return;
+    loading[s] = true;
+    fetch('/media/' + s + '/reveal.mp4')
+      .then(function (r) { if (!r.ok) throw new Error(r.status); return r.blob(); })
+      .then(function (b) { clips[s] = URL.createObjectURL(b); })
+      .catch(function () {})
+      .then(function () { loading[s] = false; });
+  }
+
+  function applyStyle(s) {
+    if (!STYLES[s]) return;
+    style = s;
+    root.setAttribute('data-style', s);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', STYLES[s].theme);
+    lsSet('kc:style', s);
+    preload(s);
+    renderSwatches();
+  }
+
+  function reveal() {
+    if (state !== 'ready') return;
+    keepAwake();
+    if (!anim) { settle(false); return; }
+    setState('revealing');
+    var src = clips[style];
+    if (!src) { fallbackReveal(); return; }
+    video.src = src;
+    var p;
+    try { p = video.play(); } catch (e) { fallbackReveal(); return; }
+    if (p && p.catch) p.catch(function () { if (state === 'revealing') fallbackReveal(); });
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(function () { settle(true); }, (STYLES[style].dur + 1.5) * 1000);
+  }
+
+  function fallbackReveal() {
+    video.classList.remove('playing');
+    root.classList.add('fallback');
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(function () { root.classList.remove('fallback'); settle(true); }, 1050);
+  }
+
+  function settle(withGlint) {
+    clearTimeout(settleTimer);
+    if (state === 'settled') return;
+    setState('settled');
+    if (withGlint) {
+      root.classList.remove('glinting');
+      void root.offsetWidth;
+      root.classList.add('glinting');
+      setTimeout(function () { root.classList.remove('glinting'); }, 1000);
+    }
+    // финальный кадр уже под видео, поэтому видео можно убрать без шва
+    setTimeout(function () {
+      video.classList.remove('playing');
+      try { video.pause(); } catch (e) {}
+    }, 180);
+  }
+
+  function replay() {
+    root.classList.remove('fallback', 'glinting');
+    video.classList.remove('playing');
+    try { video.pause(); } catch (e) {}
+    setState(anim ? 'ready' : 'settled');
+  }
+
+  video.addEventListener('playing', function () { video.classList.add('playing'); });
+  video.addEventListener('ended', function () { settle(true); });
+  video.addEventListener('error', function () { if (state === 'revealing') fallbackReveal(); });
+
+  // Экран не гаснет, пока страница открыта (Safari 16.4+, Chrome)
+  function keepAwake() {
+    if (wakeLock || !('wakeLock' in navigator)) return;
+    navigator.wakeLock.request('screen').then(function (l) {
+      wakeLock = l;
+      l.addEventListener('release', function () { wakeLock = null; });
+    }).catch(function () {});
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && state !== 'ready') keepAwake();
+  });
+
+  function toast(text) {
+    var t = $('toast');
+    t.textContent = text;
+    t.classList.add('show');
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(function () { t.classList.remove('show'); }, 1800);
+  }
+
+  // Тап по экрану: в Ready запускает reveal, во время reveal сразу показывает QR
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('.bottom, .sheet, .max, .qr')) return;
+    if (state === 'ready') reveal();
+    else if (state === 'revealing') { root.classList.remove('fallback'); settle(false); }
+  });
+
+  function openMax() { $('max').hidden = false; keepAwake(); }
+  $('qr').addEventListener('click', function () { if (state === 'settled' || !root.classList.contains('js')) openMax(); });
+  $('btnMax').addEventListener('click', openMax);
+  $('max').addEventListener('click', function () { $('max').hidden = true; });
+  $('btnReplay').addEventListener('click', replay);
+
+  // Запасной путь, если скан не удался: отправить ссылку через AirDrop/Messages
+  $('btnShare').addEventListener('click', function () {
+    if (navigator.share) {
+      navigator.share({ title: 'Karen on LinkedIn', url: LINKEDIN }).catch(function () {});
+    } else if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(LINKEDIN).then(function () { toast('Link copied'); }, function () { toast(LINKEDIN); });
+    } else {
+      toast(LINKEDIN);
+    }
+  });
+
+  // ---------- Выбор стиля ----------
+  function renderSwatches() {
+    var box = $('swatches');
+    box.innerHTML = '';
+    Object.keys(STYLES).forEach(function (k) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'swatch';
+      b.setAttribute('aria-pressed', String(k === style));
+      var i = document.createElement('i');
+      i.style.backgroundImage = 'url(/media/' + k + '/end.webp)';
+      var span = document.createElement('span');
+      span.textContent = STYLES[k].label;
+      b.appendChild(i);
+      b.appendChild(span);
+      b.addEventListener('click', function () { applyStyle(k); });
+      box.appendChild(b);
+    });
+    $('animSwitch').setAttribute('aria-checked', String(anim));
+  }
+  $('btnStyle').addEventListener('click', function () { renderSwatches(); offlineStatus(); $('sheet').hidden = false; });
+  $('sheetDone').addEventListener('click', function () { $('sheet').hidden = true; });
+  $('sheet').addEventListener('click', function (e) { if (e.target === $('sheet')) $('sheet').hidden = true; });
+  $('animSwitch').addEventListener('click', function () {
+    anim = !anim;
+    lsSet('kc:anim', anim ? '1' : '0');
+    $('animSwitch').setAttribute('aria-checked', String(anim));
+    if (anim) preload(style);
+  });
+
+  // ---------- Офлайн: Service Worker кэширует всё при первом открытии ----------
+  function offlineStatus() {
+    var out = $('offline');
+    var sw = navigator.serviceWorker && navigator.serviceWorker.controller;
+    if (!sw || !window.MessageChannel) { out.textContent = 'Open once more on Wi-Fi to save'; return; }
+    var ch = new MessageChannel();
+    ch.port1.onmessage = function (e) {
+      var d = e.data || {};
+      out.textContent = d.missing === 0 ? 'Ready: works without internet' : 'Saving… ' + (d.total - d.missing) + ' of ' + d.total;
+    };
+    sw.postMessage({ type: 'status' }, [ch.port2]);
+  }
+
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('/sw.js').then(function () {
+        return navigator.serviceWorker.ready;
+      }).then(function (reg) {
+        if (reg.active) reg.active.postMessage({ type: 'warm' });
+      }).catch(function () {});
+      if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(function () {});
+    });
+  }
+
+  applyStyle(style);
+  if (state === 'settled') keepAwake();
+})();
+</script>
+</body>
+</html>

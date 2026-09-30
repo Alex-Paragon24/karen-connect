@@ -1,0 +1,5 @@
+node_modules/
+.DS_Store
+tools/out/
+# временно: реальные медиа из Higgsfield добавлю отдельным коммитом
+site/media/

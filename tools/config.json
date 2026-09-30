@@ -1,0 +1,9 @@
+{
+  "url": "https://www.linkedin.com/in/karen-ramirez-munoz/",
+  "ecl": "M",
+  "styles": {
+    "gold": { "label": "Gold Night", "theme": "#1a1410", "dur": 5, "frame": [1076, 1928], "qr": [327, 753, 422] },
+    "rose": { "label": "Rose Dusk", "theme": "#2a1a18", "dur": 5, "frame": [1076, 1928], "qr": [327, 753, 422] },
+    "day": { "label": "Daylight", "theme": "#f4ead6", "dur": 5, "frame": [1076, 1928], "qr": [327, 753, 422] }
+  }
+}
