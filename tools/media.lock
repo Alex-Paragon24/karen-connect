@@ -1,3 +1,3 @@
 # Медиа (ролики и кадры из Higgsfield), которые Cloudflare Pages скачивает при сборке. Формат: URL SHA256
-# v3: 3 эффекта (ace ускорен до 3.47 с, marquee, jackpot) + главная (intro, loop, poster)
-https://d2ol7oe51mr4n9.cloudfront.net/user_3JILpQBJxASMahyYK04WEhjda0g/588b712c-cb7a-4397-8495-6ee3c28050e3.tar daa89f01b10e5feaed01dff78097162304f46cb7d5f80fe27b08176b39c6902a
+# v4: всё в полном разрешении ~1072×1920 (H.264 High@4.1, aq-mode 3), кадры WebP q88-90, превью ссылки media/og.jpg
+https://d2ol7oe51mr4n9.cloudfront.net/user_3JILpQBJxASMahyYK04WEhjda0g/f55ca72e-fea7-4867-98b1-62ca5fd9265a.tar 1678864f6ada92687c363d05a732eb7016942cb9b6442602db823a49b7cf3a21
