@@ -1,5 +1,5 @@
 node_modules/
 .DS_Store
 tools/out/
-# временно: реальные медиа из Higgsfield добавлю отдельным коммитом
+# медиа не в git: Cloudflare скачивает их при сборке (tools/fetch-media.sh, tools/media.lock)
 site/media/
