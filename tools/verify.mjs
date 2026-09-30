@@ -81,7 +81,7 @@ function watch(page, tag) {
 }
 const shot = async (page, name) => { const p = path.join(OUT, `${name}.png`); await page.screenshot({ path: p }); report.shots.push(p); return p; };
 const stateIs = (page, s, timeout = 15000) => page.waitForFunction((x) => document.documentElement.getAttribute('data-state') === x, s, { timeout });
-const tapStage = (page) => page.touchscreen.tap(195, 330);
+const tapStage = (page) => page.touchscreen.tap(195, 420);
 async function swStatus(page) {
   return page.evaluate(() => new Promise((resolve) => {
     const sw = navigator.serviceWorker && navigator.serviceWorker.controller;
@@ -93,70 +93,76 @@ async function swStatus(page) {
   }));
 }
 
-// ---------- 1. Первая загрузка, reveal, QR, макс-режим ----------
+// ---------- 1. Первая загрузка: экран выбора, каждый эффект, QR, макс-режим ----------
 const ctx = await newContext();
 const page = await ctx.newPage();
 watch(page, 'online');
 const t0 = Date.now();
 await page.goto(BASE, { waitUntil: 'load' });
 report.steps.loadMs = Date.now() - t0;
-await page.waitForTimeout(600);
-await shot(page, '01-ready');
-// ждём, пока ролик скачается в blob, чтобы проверить именно видео-reveal
-await page.waitForFunction(() => performance.getEntriesByType('resource').some((e) => e.name.endsWith('reveal.mp4') && e.responseEnd > 0), null, { timeout: 30000 }).catch(() => {});
-await page.waitForTimeout(800);
-await tapStage(page);
-await page.waitForTimeout(1500);
-await shot(page, '02-revealing');
-await stateIs(page, 'settled');
-report.steps.videoPlayed = await page.evaluate(() => !document.documentElement.classList.contains('fallback'));
-await page.waitForTimeout(1300);
-await shot(page, '03-settled-gold');
-await page.tap('#qr');
-await page.waitForTimeout(400);
-await shot(page, '04-max');
-await page.tap('#max');
-
-// ---------- 2. Все стили ----------
-for (const key of Object.keys(config.styles).slice(1)) {
-  await page.evaluate((k) => localStorage.setItem('kc:style', k), key);
-  await page.reload({ waitUntil: 'load' });
+await stateIs(page, 'choose');
+await page.waitForTimeout(700);
+await shot(page, '01-choose');
+const keys = Object.keys(config.concepts);
+report.steps.videoPlayed = {};
+for (const key of keys) {
+  // ждём, пока ролик скачается в blob, чтобы проверить именно видео-reveal
   await page.waitForFunction((k) => performance.getEntriesByType('resource').some((e) => e.name.endsWith(`/media/${k}/reveal.mp4`) && e.responseEnd > 0), key, { timeout: 30000 }).catch(() => {});
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(400);
+  await page.tap(`.tile[data-concept="${key}"]`);
+  await stateIs(page, 'ready');
+  await page.waitForTimeout(700);
+  await shot(page, `02-ready-${key}`);
   await tapStage(page);
+  await page.waitForTimeout(1200);
+  await shot(page, `03-revealing-${key}`);
   await stateIs(page, 'settled');
+  report.steps.videoPlayed[key] = await page.evaluate(() => !document.documentElement.classList.contains('fallback'));
   await page.waitForTimeout(1300);
-  await shot(page, `05-settled-${key}`);
+  await shot(page, `04-settled-${key}`);
+  await page.tap('#btnEffects');
+  await stateIs(page, 'choose');
 }
-await page.evaluate(() => localStorage.setItem('kc:style', 'gold'));
-
-// ---------- 3. Выбор стиля (шторка) ----------
-await page.reload({ waitUntil: 'load' });
+// макс-режим и кнопка «назад» с экрана «готов»
+await page.tap(`.tile[data-concept="${keys[0]}"]`);
+await stateIs(page, 'ready');
+await page.tap('#btnBack');
+await stateIs(page, 'choose');
+await page.tap(`.tile[data-concept="${keys[0]}"]`);
 await tapStage(page);
 await stateIs(page, 'settled');
 await page.waitForTimeout(1200);
-await page.tap('#btnStyle');
-await page.waitForTimeout(700);
-await shot(page, '06-style-sheet');
-await page.tap('#sheetDone');
+await page.tap('#qr');
+await page.waitForTimeout(400);
+await shot(page, '05-max');
+await page.tap('#max');
 
-// ---------- 4. Без сети после первой загрузки ----------
+// ---------- 2. Без сети после первой загрузки ----------
 let st = null;
 for (let i = 0; i < 60; i++) { st = await swStatus(page); if (st && st.missing === 0) break; await page.waitForTimeout(1000); }
 report.steps.offlineCacheBeforeOffline = st;
 await ctx.setOffline(true);
 await page.reload({ waitUntil: 'load' });
-await page.waitForTimeout(800);
-await shot(page, '07-offline-ready');
-await tapStage(page);
-await stateIs(page, 'settled');
-report.steps.offlineVideoPlayed = await page.evaluate(() => !document.documentElement.classList.contains('fallback'));
-await page.waitForTimeout(1300);
-await shot(page, '08-offline-settled');
+await stateIs(page, 'choose');
+await page.waitForTimeout(900);
+await shot(page, '06-offline-choose');
+report.steps.offlineVideoPlayed = {};
+for (const key of keys) {
+  await page.waitForTimeout(400);
+  await page.tap(`.tile[data-concept="${key}"]`);
+  await stateIs(page, 'ready');
+  await tapStage(page);
+  await stateIs(page, 'settled');
+  report.steps.offlineVideoPlayed[key] = await page.evaluate(() => !document.documentElement.classList.contains('fallback'));
+  await page.waitForTimeout(1300);
+  await shot(page, `07-offline-settled-${key}`);
+  await page.tap('#btnEffects');
+  await stateIs(page, 'choose');
+}
 await ctx.setOffline(false);
 await ctx.close();
 
-// ---------- 5. Первый визит на медленной сети (≈400 кбит/с, 400 мс RTT): когда виден QR ----------
+// ---------- 3. Первый визит на медленной сети (≈400 кбит/с, 400 мс RTT): когда виден QR ----------
 const slow = await newContext();
 const sp = await slow.newPage();
 watch(sp, 'slow');
@@ -166,11 +172,12 @@ await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 40
 const s0 = Date.now();
 await sp.goto(BASE, { waitUntil: 'domcontentloaded' });
 report.steps.slowDomContentLoadedMs = Date.now() - s0;
+await sp.tap(`.tile[data-concept="${keys[0]}"]`);
 await tapStage(sp);
 await stateIs(sp, 'settled', 30000);
 await sp.waitForTimeout(1200);
 report.steps.slowTapToQrMs = Date.now() - s0;
-await shot(sp, '09-slow-first-visit');
+await shot(sp, '08-slow-first-visit');
 await slow.close();
 
 await browser.close();

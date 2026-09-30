@@ -1,9 +1,9 @@
 // Service Worker: страница работает без интернета после первого открытия.
 // Стратегия: всё своё отдаём из кэша, в фоне докачиваем недостающее. Чужие домены не трогаем (их и нет).
 /*BUILD:START*/
-const CACHE = 'kc-e2772e6565';
+const CACHE = 'kc-3ef13e6ae9';
 const CORE = ["/","/manifest.webmanifest","/fonts/playfair-display-latin-400-italic.woff2","/fonts/lato-latin-400-normal.woff2","/fonts/lato-latin-700-normal.woff2","/icons/apple-touch-icon.png","/icons/icon-192.png"];
-const EXTRA = ["/icons/icon-512.png"];
+const EXTRA = ["/media/ace/thumb.webp","/media/ace/start.webp","/media/ace/end.webp","/media/marquee/thumb.webp","/media/marquee/start.webp","/media/marquee/end.webp","/media/jackpot/thumb.webp","/media/jackpot/start.webp","/media/jackpot/end.webp","/media/ace/reveal.mp4","/media/marquee/reveal.mp4","/media/jackpot/reveal.mp4","/icons/icon-512.png"];
 /*BUILD:END*/
 
 // Установка: только лёгкий минимум (быстро даже на слабом Wi-Fi), видео докачиваются после активации

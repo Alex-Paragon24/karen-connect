@@ -1,9 +1,12 @@
 {
   "url": "https://www.linkedin.com/in/karen-ramirez-munoz/",
   "ecl": "M",
-  "styles": {
-    "gold": { "label": "Gold Night", "theme": "#1a1410", "dur": 5, "frame": [1076, 1928], "qr": [327, 753, 422] },
-    "rose": { "label": "Rose Dusk", "theme": "#2a1a18", "dur": 5, "frame": [1076, 1928], "qr": [327, 753, 422] },
-    "day": { "label": "Daylight", "theme": "#f4ead6", "dur": 5, "frame": [1076, 1928], "qr": [327, 753, 422] }
+  "concepts": {
+    "ace": { "label": "The Ace", "theme": "#160702", "dur": 5.042, "frame": [1076, 1928], "qr": [327.0, 753.0, 421.0],
+      "source": "Higgsfield kling3_0 pro 17e3c785-83f0-4296-ab94-e4506ef56ac3, кадры 0-120" },
+    "marquee": { "label": "Marquee", "theme": "#0b0e20", "dur": 3.75, "frame": [1076, 1928], "qr": [308.0, 642.0, 460.1],
+      "source": "Higgsfield kling3_0 pro e2dfe681-0a09-40d6-b3ea-760c9826d36e, кадры 0-89" },
+    "jackpot": { "label": "Jackpot", "theme": "#3d1a07", "dur": 4.583, "frame": [1080, 1920], "qr": [280.0, 388.0, 513.4],
+      "source": "Higgsfield veo3_1_lite 4aa96b00-fe98-40ba-be79-7d8d7424f40a → bytedance_video_upscale 1080p 38fc4c71-b5b8-44cf-b208-6e70bb4068c5, кадры 0-109" }
   }
 }
