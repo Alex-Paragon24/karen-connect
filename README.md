@@ -53,6 +53,7 @@ Build output directory `site`. Web Analytics не включать.
 1. Open the link on Wi-Fi, tap Share → **Add to Home Screen**.
 2. Open it once from the Home Screen icon and wait ~10 seconds: under the effects it should say *Offline ready ✓*.
 3. At the conference: open, pick an effect, turn the phone to the person, tap. The QR appears after the reveal.
+   - Every open starts with a short intro. Tap to skip it.
    - Tap during the reveal to skip. ↺ plays it again for the next person.
    - ⤢ shows a big white QR for bad lighting. Share sends the link by AirDrop or Messages.
    - ✦ changes the effect or turns the animation off.

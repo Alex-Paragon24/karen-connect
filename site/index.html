@@ -35,6 +35,12 @@
     if (c === 'ace' || c === 'marquee' || c === 'jackpot') d.setAttribute('data-concept', c);
     d.setAttribute('data-state', 'choose');
     d.className += ' js';
+    // интро главной играет при каждом открытии (если анимация не выключена):
+    // сразу прячем интерфейс и держим тёмную сцену, как первый кадр ролика
+    var a = null;
+    try { a = localStorage.getItem('kc:anim'); } catch (e) {}
+    var rm = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (a === '1' || (a !== '0' && !rm)) d.className += ' home-intro intro-wait';
   })();
 </script>
 <style>
@@ -178,7 +184,7 @@
   .home-poster { background: url(/media/home/poster.webp) center / cover no-repeat; }
   /* iPhone не запускает само «невидимое» видео, поэтому петля видна всегда (до старта показывает постер) */
   #homeIntro { opacity: 0; background: #140e0a; transition: opacity .45s ease; }
-  html.intro-live #homeIntro { opacity: 1; transition: none; }
+  html.intro-live #homeIntro, html.intro-wait #homeIntro { opacity: 1; transition: none; }
   .tap-begin { position: absolute; left: 0; right: 0; bottom: calc(24vh + var(--safe-b)); opacity: 0; pointer-events: none;
     font: 400 12px/1 'Lato', sans-serif; letter-spacing: .28em; text-transform: uppercase; color: var(--muted); transition: opacity .4s ease; }
   .tap-begin i { display: inline-block; width: 6px; height: 6px; margin: 0 10px 1px 0; border-radius: 50%;
@@ -188,9 +194,9 @@
   .home-bg::after { content: ''; position: absolute; inset: 0;
     background: linear-gradient(to bottom, rgba(20, 14, 10, .35) 0%, transparent 18%, transparent 46%, rgba(20, 14, 10, .78) 72%, rgba(20, 14, 10, .94) 100%); }
   /* интро: текст и плитки появляются под свет прожектора */
-  html.intro .chooser .eyebrow, html.intro .chooser .name, html.intro .chooser .lead, html.intro .tiles, html.intro .prefs { opacity: 0; transform: translateY(14px); }
-  html.intro.intro-text .chooser .eyebrow, html.intro.intro-text .chooser .name,
-  html.intro.intro-ui .chooser .lead, html.intro.intro-ui .tiles, html.intro.intro-ui .prefs { opacity: 1; transform: none; }
+  html.home-intro .chooser .eyebrow, html.home-intro .chooser .name, html.home-intro .chooser .lead, html.home-intro .tiles, html.home-intro .prefs { opacity: 0; transform: translateY(14px); }
+  html.home-intro.intro-text .chooser .eyebrow, html.home-intro.intro-text .chooser .name,
+  html.home-intro.intro-ui .chooser .lead, html.home-intro.intro-ui .tiles, html.home-intro.intro-ui .prefs { opacity: 1; transform: none; }
   .chooser .eyebrow, .chooser .name, .chooser .lead, .tiles, .prefs { transition: opacity 1s ease, transform 1.1s var(--ease); }
   html.intro-text .chooser .name { transition-delay: .25s; }
   html.intro-ui .tiles { transition-delay: .15s; }
@@ -528,7 +534,7 @@
     $('offline').textContent = '';
   }
 
-  // ---------- Главная: интро из Higgsfield (раз в 12 часов), потом бесшовная петля ----------
+  // ---------- Главная: интро из Higgsfield при каждом открытии, потом бесшовная петля ----------
   var homeIntro = $('homeIntro'), homeLoop = $('homeLoop');
   var homeClips = {};
   var homeLoopSrc = null;
@@ -564,11 +570,13 @@
   document.addEventListener('touchstart', unlockOnGesture, { capture: true, passive: true });
   document.addEventListener('pointerdown', unlockOnGesture, { capture: true, passive: true });
 
+  var introDone = false;
   function endIntro() {
-    root.classList.remove('intro-live', 'tap-begin');
+    introDone = true;
+    root.classList.remove('intro-live', 'intro-wait', 'tap-begin');
     showUi();
     startLoop();
-    setTimeout(function () { root.classList.remove('intro'); }, 1400);
+    setTimeout(function () { root.classList.remove('home-intro'); }, 1400);
   }
   function runIntro(fromGesture) {
     root.classList.add('intro-live');   // видео видно в момент запуска, иначе iPhone его не пустит
@@ -579,7 +587,6 @@
     }
     tryPlay(homeIntro).then(function () {
       root.classList.remove('tap-begin');
-      lsSet('kc:intro', String(Date.now()));
       // имя проявляется под свет прожектора, плитки чуть позже
       setTimeout(function () { root.classList.add('intro-text'); }, 1900);
       setTimeout(function () { root.classList.add('intro-ui'); }, 3200);
@@ -590,20 +597,22 @@
       root.classList.add('tap-begin', 'intro-text');
     });
   }
+  // возвращает промис: интро скачано (или ждать больше нечего), после этого можно качать остальное
   function playIntro() {
-    var last = +(lsGet('kc:intro') || 0);
-    if (!anim || Date.now() - last < 12 * 3600 * 1000) { showUi(); startLoop(); return; }
-    root.classList.add('intro');
-    var done = false;
-    // слабая сеть: если интро не скачалось за 2 с, не заставляем ждать
-    var guard = setTimeout(function () { done = true; endIntro(); }, 2000);
-    blobOf('intro').then(function (src) {
-      if (done) return;
-      done = true;
-      clearTimeout(guard);
-      homeIntro.src = src;
-      runIntro(false);
-    }).catch(function () { if (!done) { done = true; clearTimeout(guard); endIntro(); } });
+    if (!anim) { root.classList.remove('home-intro', 'intro-wait'); showUi(); startLoop(); return Promise.resolve(); }
+    root.classList.add('home-intro', 'intro-wait');
+    return new Promise(function (settle) {
+      // медленная сеть: ждём интро не дольше 5 с, потом сразу главная с петлёй
+      var guard = setTimeout(function () { if (!introDone) endIntro(); settle(); }, 5000);
+      blobOf('intro').then(function (src) {
+        clearTimeout(guard);
+        settle();
+        blobOf('loop');   // петля качается следом: в первые секунды весь канал у интро
+        if (introDone) return;
+        homeIntro.src = src;
+        runIntro(false);
+      }).catch(function () { clearTimeout(guard); settle(); if (!introDone) endIntro(); });
+    });
   }
   // петля стартует чуть раньше конца интро: под ним уже тот же кадр, шва не видно
   homeIntro.addEventListener('timeupdate', function () {
@@ -613,6 +622,8 @@
   // тап на главной: «Tap to begin» запускает интро, во время интро тап его пропускает
   $('chooser').addEventListener('click', function () {
     if (root.classList.contains('tap-begin')) { root.classList.remove('tap-begin'); runIntro(true); return; }
+    // тап, пока интро ещё качается: не ждём
+    if (root.classList.contains('intro-wait') && !root.classList.contains('intro-live')) { endIntro(); return; }
     if (root.classList.contains('intro-live') && !root.classList.contains('intro-ui')) {
       try { homeIntro.pause(); } catch (e) {}
       endIntro();
@@ -622,14 +633,12 @@
   new MutationObserver(function () {
     if (state === 'choose') { startLoop(); return; }
     try { homeLoop.pause(); homeIntro.pause(); } catch (e) {}
-    if (root.classList.contains('intro')) { root.classList.remove('intro-live', 'tap-begin'); showUi(); root.classList.remove('intro'); }
+    if (root.classList.contains('home-intro')) { introDone = true; root.classList.remove('intro-live', 'intro-wait', 'tap-begin'); showUi(); root.classList.remove('home-intro'); }
   }).observe(root, { attributes: true, attributeFilter: ['data-state'] });
 
   applyConcept(concept);
-  blobOf('loop');       // сначала лёгкая петля главной
-  playIntro();
-  // ролики эффектов качаем чуть позже, чтобы не отнимать канал у главной (выбранный эффект качается сразу при выборе)
-  setTimeout(function () { ORDER.forEach(preload); }, 2500);
+  // ролики эффектов качаем после интро, чтобы не отнимать у него канал (выбранный эффект качается сразу при выборе)
+  playIntro().then(function () { setTimeout(function () { ORDER.forEach(preload); }, 800); });
 })();
 </script>
 </body>

@@ -104,10 +104,15 @@ const t0 = Date.now();
 await page.goto(BASE, { waitUntil: 'load' });
 report.steps.loadMs = Date.now() - t0;
 await stateIs(page, 'choose');
-report.steps.introPlayed = await page.waitForFunction(() => document.documentElement.classList.contains('intro'), null, { timeout: 4000 }).then(() => true, () => false);
+report.steps.introPlayed = await page.waitForFunction(() => document.documentElement.classList.contains('home-intro'), null, { timeout: 4000 }).then(() => true, () => false);
 await page.waitForTimeout(1200);
+// интро должно быть не только запущено, но и видно (раньше класс на <html> случайно делал всю страницу прозрачной)
+report.steps.introVisible = await page.evaluate(() => {
+  const v = document.getElementById('homeIntro');
+  return getComputedStyle(document.documentElement).opacity === '1' && getComputedStyle(v).opacity === '1' && !v.paused && v.currentTime > 0;
+});
 await shot(page, '00-intro');
-await page.waitForFunction(() => !document.documentElement.classList.contains('intro'), null, { timeout: 15000 });
+await page.waitForFunction(() => !document.documentElement.classList.contains('home-intro'), null, { timeout: 15000 });
 report.steps.homeLoopPlaying = await page.waitForFunction(() => { const v = document.getElementById('homeLoop'); return v && !v.paused && v.currentTime > 0; }, null, { timeout: 8000 }).then(() => true, () => false);
 await page.waitForTimeout(500);
 await shot(page, '01-choose');
