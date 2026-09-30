@@ -45,8 +45,11 @@ function serve(port) {
       const u = decodeURIComponent(new URL(req.url, 'http://x').pathname);
       let file = path.join(SITE, u === '/' ? 'index.html' : u);
       if (!file.startsWith(SITE) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) { res.writeHead(404); res.end('404'); return; }
+      let type = MIME[path.extname(file)] || 'application/octet-stream';
+      const twin = file.replace(/\.mp4$/, '.test.webm');
+      if (file.endsWith('.mp4') && fs.existsSync(twin)) { file = twin; type = 'video/webm'; }
       const buf = fs.readFileSync(file);
-      const head = { 'Content-Type': MIME[path.extname(file)] || 'application/octet-stream', 'Accept-Ranges': 'bytes', ...headersFor(u) };
+      const head = { 'Content-Type': type, 'Accept-Ranges': 'bytes', ...headersFor(u) };
       const range = /bytes=(\d*)-(\d*)/.exec(req.headers.range || '');
       if (range) {
         const start = range[1] ? +range[1] : 0, end = range[2] ? Math.min(+range[2], buf.length - 1) : buf.length - 1;
@@ -101,7 +104,12 @@ const t0 = Date.now();
 await page.goto(BASE, { waitUntil: 'load' });
 report.steps.loadMs = Date.now() - t0;
 await stateIs(page, 'choose');
-await page.waitForTimeout(700);
+report.steps.introPlayed = await page.waitForFunction(() => document.documentElement.classList.contains('intro'), null, { timeout: 4000 }).then(() => true, () => false);
+await page.waitForTimeout(1200);
+await shot(page, '00-intro');
+await page.waitForFunction(() => !document.documentElement.classList.contains('intro'), null, { timeout: 15000 });
+report.steps.homeLoopPlaying = await page.waitForFunction(() => { const v = document.getElementById('homeLoop'); return v && !v.paused && v.classList.contains('on'); }, null, { timeout: 8000 }).then(() => true, () => false);
+await page.waitForTimeout(500);
 await shot(page, '01-choose');
 const keys = Object.keys(config.concepts);
 report.steps.videoPlayed = {};
@@ -113,11 +121,12 @@ for (const key of keys) {
   await stateIs(page, 'ready');
   await page.waitForTimeout(700);
   await shot(page, `02-ready-${key}`);
+  await page.evaluate(() => { window.__played = false; document.getElementById('video').addEventListener('playing', () => { window.__played = true; }, { once: true }); });
   await tapStage(page);
   await page.waitForTimeout(1200);
   await shot(page, `03-revealing-${key}`);
   await stateIs(page, 'settled');
-  report.steps.videoPlayed[key] = await page.evaluate(() => !document.documentElement.classList.contains('fallback'));
+  report.steps.videoPlayed[key] = await page.evaluate(() => window.__played);
   await page.waitForTimeout(1300);
   await shot(page, `04-settled-${key}`);
   await page.tap('#btnEffects');
@@ -151,9 +160,10 @@ for (const key of keys) {
   await page.waitForTimeout(400);
   await page.tap(`.tile[data-concept="${key}"]`);
   await stateIs(page, 'ready');
+  await page.evaluate(() => { window.__played = false; document.getElementById('video').addEventListener('playing', () => { window.__played = true; }, { once: true }); });
   await tapStage(page);
   await stateIs(page, 'settled');
-  report.steps.offlineVideoPlayed[key] = await page.evaluate(() => !document.documentElement.classList.contains('fallback'));
+  report.steps.offlineVideoPlayed[key] = await page.evaluate(() => window.__played);
   await page.waitForTimeout(1300);
   await shot(page, `07-offline-settled-${key}`);
   await page.tap('#btnEffects');

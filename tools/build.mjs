@@ -60,7 +60,8 @@ const keys = Object.keys(config.concepts);
 // CORE ставится атомарно при установке SW, поэтому только лёгкая оболочка; медиа докачиваются по одному
 const core = ['/', '/manifest.webmanifest', '/fonts/playfair-display-latin-400-italic.woff2', '/fonts/lato-latin-400-normal.woff2',
   '/fonts/lato-latin-700-normal.woff2', '/icons/apple-touch-icon.png', '/icons/icon-192.png'];
-const extra = [...keys.flatMap((k) => [`/media/${k}/thumb.webp`, `/media/${k}/start.webp`, `/media/${k}/end.webp`]),
+const extra = ['/media/home/poster.webp', ...keys.flatMap((k) => [`/media/${k}/thumb.webp`, `/media/${k}/start.webp`, `/media/${k}/end.webp`]),
+  '/media/home/loop.mp4', '/media/home/intro.mp4',
   ...keys.map((k) => `/media/${k}/reveal.mp4`), '/icons/icon-512.png'];
 for (const f of core.slice(1)) if (!fs.existsSync(path.join(SITE, f))) throw new Error(`нет файла оболочки ${f}`);
 const coreOk = core, extraOk = extra;

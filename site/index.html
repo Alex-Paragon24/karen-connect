@@ -153,14 +153,29 @@
   .btn:active { transform: scale(.94); }
   .btn svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 
-  /* ---------- Экран выбора эффекта ---------- */
+  /* ---------- Экран выбора эффекта (главная): 3D-сцена из Higgsfield на фоне ---------- */
   .chooser { position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column; align-items: center;
-    padding: calc(var(--safe-t) + 34px) 16px calc(var(--safe-b) + 18px); text-align: center;
-    background: radial-gradient(120% 70% at 50% 0%, rgba(90, 62, 20, .55), transparent 60%), rgba(26, 20, 16, .8);
-    -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); transition: opacity .35s ease; }
+    padding: calc(var(--safe-t) + 34px) 16px calc(var(--safe-b) + 18px); text-align: center; background: var(--bg);
+    transition: opacity .35s ease; overflow: hidden; }
+  .home-bg { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+  .home-bg > * { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .home-poster { background: url(/media/home/poster.webp) center / cover no-repeat; }
+  .home-bg video { opacity: 0; transition: opacity .25s linear; }
+  .home-bg video.on { opacity: 1; }
+  /* затемнение снизу: подписи плиток и переключатели читаются на любом кадре */
+  .home-bg::after { content: ''; position: absolute; inset: 0;
+    background: linear-gradient(to bottom, rgba(20, 14, 10, .35) 0%, transparent 18%, transparent 46%, rgba(20, 14, 10, .78) 72%, rgba(20, 14, 10, .94) 100%); }
+  /* интро: текст и плитки появляются под свет прожектора */
+  html.intro .chooser .eyebrow, html.intro .chooser .name, html.intro .chooser .lead, html.intro .tiles, html.intro .prefs { opacity: 0; transform: translateY(14px); }
+  html.intro.intro-text .chooser .eyebrow, html.intro.intro-text .chooser .name,
+  html.intro.intro-ui .chooser .lead, html.intro.intro-ui .tiles, html.intro.intro-ui .prefs { opacity: 1; transform: none; }
+  .chooser .eyebrow, .chooser .name, .chooser .lead, .tiles, .prefs { transition: opacity 1s ease, transform 1.1s var(--ease); }
+  html.intro-text .chooser .name { transition-delay: .25s; }
+  html.intro-ui .tiles { transition-delay: .15s; }
+  html.intro-ui .prefs { transition-delay: .35s; }
   .chooser .name { font-size: clamp(64px, 20vw, 96px); margin-top: 8px; }
   .chooser .lead { margin-top: auto; font: 400 13px/1.3 'Lato', sans-serif; letter-spacing: .24em; text-transform: uppercase; color: var(--muted); }
-  .tiles { width: 100%; max-width: 460px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0 auto; }
+  .tiles { width: 100%; max-width: 460px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 16px 0 0; }
   .tile { display: flex; flex-direction: column; align-items: center; gap: 10px; font: 400 14px/1.2 'Lato', sans-serif; color: var(--ink); }
   .tile i { display: block; width: 100%; aspect-ratio: 9 / 16; border-radius: 14px; background: #2a2018 center / cover no-repeat;
     border: 1px solid rgba(245, 200, 66, .35); box-shadow: 0 10px 28px rgba(0, 0, 0, .45); transition: transform .2s var(--ease), border-color .2s; }
@@ -219,6 +234,11 @@
 
 <!-- Экран выбора эффекта: Karen выбирает, что показать собеседнику -->
 <section class="chooser" id="chooser" aria-label="Choose the reveal">
+  <div class="home-bg" aria-hidden="true">
+    <div class="home-poster"></div>
+    <video id="homeIntro" muted playsinline preload="none" disablepictureinpicture disableremoteplayback></video>
+    <video id="homeLoop" muted playsinline loop preload="none" disablepictureinpicture disableremoteplayback></video>
+  </div>
   <p class="eyebrow">Let's connect</p>
   <h1 class="name">Karen</h1>
   <p class="lead">Choose the reveal</p>
@@ -483,7 +503,71 @@
     $('offline').textContent = '';
   }
 
+  // ---------- Главная: интро из Higgsfield (раз в 12 часов), потом бесшовная петля ----------
+  var homeIntro = $('homeIntro'), homeLoop = $('homeLoop');
+  var homeClips = {};
+  function blobOf(name) {
+    if (!homeClips[name]) {
+      homeClips[name] = fetch('/media/home/' + name + '.mp4')
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.blob(); })
+        .then(function (b) { return URL.createObjectURL(b); });
+    }
+    return homeClips[name];
+  }
+  function showUi() { root.classList.add('intro-text', 'intro-ui'); }
+  function startLoop() {
+    if (!anim) return;
+    blobOf('loop').then(function (src) {
+      if (homeLoop.src !== src) homeLoop.src = src;
+      if (state !== 'choose') return;
+      var p = homeLoop.play();
+      if (p && p.catch) p.catch(function () {});
+    }).catch(function () {});
+  }
+  homeLoop.addEventListener('playing', function () { homeLoop.classList.add('on'); homeIntro.classList.remove('on'); });
+  function endIntro() {
+    showUi();
+    startLoop();
+    setTimeout(function () { root.classList.remove('intro'); }, 1400);
+  }
+  function playIntro() {
+    var last = +(lsGet('kc:intro') || 0);
+    if (!anim || reduced || Date.now() - last < 12 * 3600 * 1000) { showUi(); startLoop(); return; }
+    root.classList.add('intro');
+    var gaveUp = false;
+    // слабая сеть: если интро не скачалось за 1.5 с, не заставляем ждать
+    var guard = setTimeout(function () { gaveUp = true; endIntro(); }, 1500);
+    blobOf('intro').then(function (src) {
+      if (gaveUp) return;
+      clearTimeout(guard);
+      homeIntro.src = src;
+      var p = homeIntro.play();
+      if (p && p.catch) p.catch(function () { endIntro(); });
+      lsSet('kc:intro', String(Date.now()));
+      // имя проявляется под свет прожектора, плитки чуть позже
+      setTimeout(function () { root.classList.add('intro-text'); }, 1900);
+      setTimeout(function () { root.classList.add('intro-ui'); }, 3200);
+      blobOf('loop');
+    }).catch(function () { if (!gaveUp) { clearTimeout(guard); endIntro(); } });
+  }
+  homeIntro.addEventListener('playing', function () { homeIntro.classList.add('on'); });
+  homeIntro.addEventListener('ended', endIntro);
+  // тап во время интро: сразу всё показать
+  $('chooser').addEventListener('click', function () {
+    if (root.classList.contains('intro') && !root.classList.contains('intro-ui')) {
+      try { homeIntro.pause(); } catch (e) {}
+      endIntro();
+    }
+  });
+  // петля играет только на главной: экономим батарею
+  new MutationObserver(function () {
+    if (state === 'choose') { startLoop(); return; }
+    try { homeLoop.pause(); homeIntro.pause(); } catch (e) {}
+    if (root.classList.contains('intro')) { showUi(); root.classList.remove('intro'); }
+  }).observe(root, { attributes: true, attributeFilter: ['data-state'] });
+
   applyConcept(concept);
+  playIntro();
   // все три ролика заранее в память: после первого визита они приходят из офлайн-кэша мгновенно
   ORDER.forEach(preload);
 })();
