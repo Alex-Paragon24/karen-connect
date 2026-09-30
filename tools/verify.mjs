@@ -108,7 +108,7 @@ report.steps.introPlayed = await page.waitForFunction(() => document.documentEle
 await page.waitForTimeout(1200);
 await shot(page, '00-intro');
 await page.waitForFunction(() => !document.documentElement.classList.contains('intro'), null, { timeout: 15000 });
-report.steps.homeLoopPlaying = await page.waitForFunction(() => { const v = document.getElementById('homeLoop'); return v && !v.paused && v.classList.contains('on'); }, null, { timeout: 8000 }).then(() => true, () => false);
+report.steps.homeLoopPlaying = await page.waitForFunction(() => { const v = document.getElementById('homeLoop'); return v && !v.paused && v.currentTime > 0; }, null, { timeout: 8000 }).then(() => true, () => false);
 await page.waitForTimeout(500);
 await shot(page, '01-choose');
 const keys = Object.keys(config.concepts);

@@ -23,7 +23,7 @@
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icons/icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
-<link rel="preload" href="/fonts/playfair-display-latin-400-italic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/playfair-display-latin-600-italic.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="/fonts/lato-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
 <script>
   // До первой отрисовки: восстанавливаем последний эффект и режим, чтобы не было мигания.
@@ -40,6 +40,8 @@
   /* ---------- Шрифты: свои файлы, никаких запросов к Google ---------- */
   @font-face { font-family: 'Playfair Display'; font-style: italic; font-weight: 400; font-display: swap;
     src: url(/fonts/playfair-display-latin-400-italic.woff2) format('woff2'); }
+  @font-face { font-family: 'Playfair Display'; font-style: italic; font-weight: 600; font-display: swap;
+    src: url(/fonts/playfair-display-latin-600-italic.woff2) format('woff2'); }
   @font-face { font-family: 'Lato'; font-style: normal; font-weight: 400; font-display: swap;
     src: url(/fonts/lato-latin-400-normal.woff2) format('woff2'); }
   @font-face { font-family: 'Lato'; font-style: normal; font-weight: 700; font-display: swap;
@@ -115,19 +117,26 @@
   /* ---------- Тексты ---------- */
   .eyebrow { font: 700 12px/1.2 'Lato', sans-serif; letter-spacing: .34em; text-transform: uppercase;
     color: var(--champagne); padding-left: .34em; }
-  .name { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-weight: 400; line-height: 1;
-    padding: 0 .08em .06em; color: var(--gold-bright);
-    background: linear-gradient(100deg, #b8860b 0%, #f5c842 26%, #fff3c4 44%, #d4a017 60%, #f5c842 78%, #b8860b 100%);
-    background-size: 240% 100%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
-    animation: sheen 7s ease-in-out infinite; }
-  @keyframes sheen { 0%, 100% { background-position: 0% 0; } 50% { background-position: 100% 0; } }
+  /* Имя: плотное золото, мягкое свечение сзади, яркий блик проходит по буквам каждые ~3.6 с */
+  .name { position: relative; display: inline-block; font-family: 'Playfair Display', Georgia, serif; font-style: italic;
+    font-weight: 600; line-height: 1; }
+  .name .glow, .name .ink { display: inline-block; padding: 0 .1em .08em; }
+  .name .glow { position: absolute; left: 0; top: 0; color: #f5b82e; opacity: .55; filter: blur(14px); pointer-events: none; }
+  .name .ink { position: relative; color: #f5c842;
+    background: linear-gradient(100deg, #e0a21c 0%, #f7cc4a 10%, #c58a0a 20%, #f5c842 29%, #fff1b8 42%, #ffffff 48%, #fff1b8 54%,
+      #f5c842 67%, #c58a0a 78%, #f7cc4a 89%, #e0a21c 100%);
+    background-size: 320% 100%; background-position: 100% 0;
+    -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+    animation: sheen 3.6s cubic-bezier(.5, .05, .3, 1) infinite; }
+  @keyframes sheen { 0% { background-position: 100% 0; } 58%, 100% { background-position: 0% 0; } }
+  html[data-state="settled"] .top .name .glow { opacity: .4; }
 
   /* экран «готов»: первый кадр эффекта, имя и подсказка тапнуть */
   .intro { position: fixed; left: 0; right: 0; bottom: calc(12vh + var(--safe-b)); text-align: center;
     pointer-events: none; transition: opacity .45s ease, transform .6s var(--ease); }
   .intro::before { content: ''; position: absolute; left: 50%; top: 50%; width: 150vw; height: 260px;
     transform: translate(-50%, -50%); background: radial-gradient(closest-side, var(--scrim), transparent); z-index: -1; }
-  .intro .name { font-size: clamp(68px, 23vw, 112px); display: inline-block; margin-top: 6px; }
+  .intro .name { font-size: clamp(68px, 23vw, 112px); margin-top: 6px; }
   .hint { margin-top: 26px; font: 400 12px/1 'Lato', sans-serif; letter-spacing: .28em; text-transform: uppercase;
     color: var(--muted); animation: breathe 2.6s ease-in-out infinite; }
   .hint i { display: inline-block; width: 6px; height: 6px; margin: 0 10px 1px 0; border-radius: 50%;
@@ -138,7 +147,7 @@
   /* экран QR: имя сверху, подпись и кнопки снизу */
   .top { position: fixed; left: 0; right: 0; top: calc(var(--safe-t) + 14px); text-align: center; pointer-events: none;
     transition: opacity .5s ease .15s, transform .7s var(--ease) .15s; }
-  .top .name { font-size: 42px; display: inline-block; }
+  .top .name { font-size: 42px; }
   .top .eyebrow { margin-top: 4px; }
   .bottom { position: fixed; left: 0; right: 0; bottom: calc(var(--safe-b) + 16px); text-align: center;
     transition: opacity .5s ease .25s, transform .7s var(--ease) .25s; }
@@ -160,8 +169,14 @@
   .home-bg { position: absolute; inset: 0; z-index: -1; pointer-events: none; }
   .home-bg > * { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
   .home-poster { background: url(/media/home/poster.webp) center / cover no-repeat; }
-  .home-bg video { opacity: 0; transition: opacity .25s linear; }
-  .home-bg video.on { opacity: 1; }
+  /* iPhone не запускает само «невидимое» видео, поэтому петля видна всегда (до старта показывает постер) */
+  #homeIntro { opacity: 0; background: #140e0a; transition: opacity .45s ease; }
+  html.intro-live #homeIntro { opacity: 1; transition: none; }
+  .tap-begin { position: absolute; left: 0; right: 0; bottom: calc(24vh + var(--safe-b)); opacity: 0; pointer-events: none;
+    font: 400 12px/1 'Lato', sans-serif; letter-spacing: .28em; text-transform: uppercase; color: var(--muted); transition: opacity .4s ease; }
+  .tap-begin i { display: inline-block; width: 6px; height: 6px; margin: 0 10px 1px 0; border-radius: 50%;
+    background: var(--gold-bright); box-shadow: 0 0 10px var(--gold-bright); vertical-align: middle; }
+  html.tap-begin .tap-begin { opacity: 1; animation: breathe 2.6s ease-in-out infinite; }
   /* затемнение снизу: подписи плиток и переключатели читаются на любом кадре */
   .home-bg::after { content: ''; position: absolute; inset: 0;
     background: linear-gradient(to bottom, rgba(20, 14, 10, .35) 0%, transparent 18%, transparent 46%, rgba(20, 14, 10, .78) 72%, rgba(20, 14, 10, .94) 100%); }
@@ -214,7 +229,7 @@
   .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
   @media (prefers-reduced-motion: reduce) {
-    .name, .hint { animation: none; }
+    .name .ink, .hint { animation: none; }
     html.glinting .glint { animation: none; }
   }
 </style>
@@ -236,11 +251,12 @@
 <section class="chooser" id="chooser" aria-label="Choose the reveal">
   <div class="home-bg" aria-hidden="true">
     <div class="home-poster"></div>
+    <video id="homeLoop" muted playsinline loop preload="none" poster="/media/home/poster.webp" disablepictureinpicture disableremoteplayback></video>
     <video id="homeIntro" muted playsinline preload="none" disablepictureinpicture disableremoteplayback></video>
-    <video id="homeLoop" muted playsinline loop preload="none" disablepictureinpicture disableremoteplayback></video>
   </div>
+  <p class="tap-begin"><i></i>Tap to begin</p>
   <p class="eyebrow">Let's connect</p>
-  <h1 class="name">Karen</h1>
+  <h1 class="name"><span class="glow" aria-hidden="true">Karen</span><span class="ink">Karen</span></h1>
   <p class="lead">Choose the reveal</p>
   <div class="tiles" id="tiles"></div>
   <div class="prefs">
@@ -258,13 +274,13 @@
 </button>
 <section class="intro" aria-hidden="true">
   <p class="eyebrow">Let's connect</p>
-  <p class="name">Karen</p>
+  <p class="name"><span class="glow" aria-hidden="true">Karen</span><span class="ink">Karen</span></p>
   <p class="hint"><i></i>Tap to reveal</p>
 </section>
 
 <!-- Экран QR -->
 <header class="top">
-  <p class="name">Karen</p>
+  <p class="name"><span class="glow" aria-hidden="true">Karen</span><span class="ink">Karen</span></p>
   <p class="eyebrow">Let's connect</p>
 </header>
 <footer class="bottom">
@@ -301,7 +317,7 @@
   // Ссылка, на которую ведёт QR. Сам QR вшит в разметку заранее (tools/build.mjs), здесь только для кнопки Share.
   var LINKEDIN = 'https://www.linkedin.com/in/karen-ramirez-munoz/';
   // Эффекты: подпись, цвет статус-бара, длительность ролика. Генерирует tools/build.mjs.
-  var CONCEPTS = /*CONFIG:START*/{"ace":{"label":"The Ace","theme":"#160702","dur":5.042},"marquee":{"label":"Marquee","theme":"#0b0e20","dur":3.75},"jackpot":{"label":"Jackpot","theme":"#3d1a07","dur":4.583}}/*CONFIG:END*/;
+  var CONCEPTS = /*CONFIG:START*/{"ace":{"label":"The Ace","theme":"#160702","dur":3.467},"marquee":{"label":"Marquee","theme":"#0b0e20","dur":3.75},"jackpot":{"label":"Jackpot","theme":"#3d1a07","dur":4.583}}/*CONFIG:END*/;
   var ORDER = Object.keys(CONCEPTS);
 
   var root = document.documentElement;
@@ -506,55 +522,89 @@
   // ---------- Главная: интро из Higgsfield (раз в 12 часов), потом бесшовная петля ----------
   var homeIntro = $('homeIntro'), homeLoop = $('homeLoop');
   var homeClips = {};
+  var homeLoopSrc = null;
   function blobOf(name) {
     if (!homeClips[name]) {
       homeClips[name] = fetch('/media/home/' + name + '.mp4')
         .then(function (r) { if (!r.ok) throw new Error(r.status); return r.blob(); })
         .then(function (b) { return URL.createObjectURL(b); });
+      homeClips[name].then(function (u) { if (name === 'loop') homeLoopSrc = u; }, function () {});
     }
     return homeClips[name];
+  }
+  function tryPlay(v) {
+    try { var p = v.play(); return (p && p.then) ? p : Promise.resolve(); } catch (e) { return Promise.reject(e); }
   }
   function showUi() { root.classList.add('intro-text', 'intro-ui'); }
   function startLoop() {
     if (!anim) return;
     blobOf('loop').then(function (src) {
-      if (homeLoop.src !== src) homeLoop.src = src;
-      if (state !== 'choose') return;
-      var p = homeLoop.play();
-      if (p && p.catch) p.catch(function () {});
+      if (homeLoop.getAttribute('src') !== src) homeLoop.src = src;
+      if (state !== 'choose' || !homeLoop.paused) return;
+      tryPlay(homeLoop).catch(function () {});
     }).catch(function () {});
   }
-  homeLoop.addEventListener('playing', function () { homeLoop.classList.add('on'); homeIntro.classList.remove('on'); });
+  // iOS (режим энергосбережения и т.п.) пускает видео только от касания: первым же тапом «разблокируем» петлю
+  function unlockOnGesture() {
+    if (state !== 'choose' || root.classList.contains('intro-live')) return;
+    if (homeLoopSrc && homeLoop.paused) {
+      if (homeLoop.getAttribute('src') !== homeLoopSrc) homeLoop.src = homeLoopSrc;
+      tryPlay(homeLoop).catch(function () {});
+    }
+  }
+  document.addEventListener('touchstart', unlockOnGesture, { capture: true, passive: true });
+  document.addEventListener('pointerdown', unlockOnGesture, { capture: true, passive: true });
+
   function endIntro() {
+    root.classList.remove('intro-live', 'tap-begin');
     showUi();
     startLoop();
     setTimeout(function () { root.classList.remove('intro'); }, 1400);
+  }
+  function runIntro(fromGesture) {
+    root.classList.add('intro-live');   // видео видно в момент запуска, иначе iPhone его не пустит
+    // в том же касании «разблокируем» петлю, чтобы после интро она пошла сама
+    if (fromGesture && homeLoopSrc) {
+      if (homeLoop.getAttribute('src') !== homeLoopSrc) homeLoop.src = homeLoopSrc;
+      tryPlay(homeLoop).then(function () { homeLoop.pause(); homeLoop.currentTime = 0; }, function () {});
+    }
+    tryPlay(homeIntro).then(function () {
+      root.classList.remove('tap-begin');
+      lsSet('kc:intro', String(Date.now()));
+      // имя проявляется под свет прожектора, плитки чуть позже
+      setTimeout(function () { root.classList.add('intro-text'); }, 1900);
+      setTimeout(function () { root.classList.add('intro-ui'); }, 3200);
+    }, function () {
+      root.classList.remove('intro-live');
+      if (fromGesture) { endIntro(); return; }
+      // автозапуск запрещён: показываем имя и просим тап, интро стартует от касания
+      root.classList.add('tap-begin', 'intro-text');
+    });
   }
   function playIntro() {
     var last = +(lsGet('kc:intro') || 0);
     if (!anim || reduced || Date.now() - last < 12 * 3600 * 1000) { showUi(); startLoop(); return; }
     root.classList.add('intro');
-    var gaveUp = false;
-    // слабая сеть: если интро не скачалось за 1.5 с, не заставляем ждать
-    var guard = setTimeout(function () { gaveUp = true; endIntro(); }, 1500);
+    var done = false;
+    // слабая сеть: если интро не скачалось за 2 с, не заставляем ждать
+    var guard = setTimeout(function () { done = true; endIntro(); }, 2000);
     blobOf('intro').then(function (src) {
-      if (gaveUp) return;
+      if (done) return;
+      done = true;
       clearTimeout(guard);
       homeIntro.src = src;
-      var p = homeIntro.play();
-      if (p && p.catch) p.catch(function () { endIntro(); });
-      lsSet('kc:intro', String(Date.now()));
-      // имя проявляется под свет прожектора, плитки чуть позже
-      setTimeout(function () { root.classList.add('intro-text'); }, 1900);
-      setTimeout(function () { root.classList.add('intro-ui'); }, 3200);
-      blobOf('loop');
-    }).catch(function () { if (!gaveUp) { clearTimeout(guard); endIntro(); } });
+      runIntro(false);
+    }).catch(function () { if (!done) { done = true; clearTimeout(guard); endIntro(); } });
   }
-  homeIntro.addEventListener('playing', function () { homeIntro.classList.add('on'); });
+  // петля стартует чуть раньше конца интро: под ним уже тот же кадр, шва не видно
+  homeIntro.addEventListener('timeupdate', function () {
+    if (homeIntro.duration && homeIntro.currentTime > homeIntro.duration - 0.4) startLoop();
+  });
   homeIntro.addEventListener('ended', endIntro);
-  // тап во время интро: сразу всё показать
+  // тап на главной: «Tap to begin» запускает интро, во время интро тап его пропускает
   $('chooser').addEventListener('click', function () {
-    if (root.classList.contains('intro') && !root.classList.contains('intro-ui')) {
+    if (root.classList.contains('tap-begin')) { root.classList.remove('tap-begin'); runIntro(true); return; }
+    if (root.classList.contains('intro-live') && !root.classList.contains('intro-ui')) {
       try { homeIntro.pause(); } catch (e) {}
       endIntro();
     }
@@ -563,13 +613,14 @@
   new MutationObserver(function () {
     if (state === 'choose') { startLoop(); return; }
     try { homeLoop.pause(); homeIntro.pause(); } catch (e) {}
-    if (root.classList.contains('intro')) { showUi(); root.classList.remove('intro'); }
+    if (root.classList.contains('intro')) { root.classList.remove('intro-live', 'tap-begin'); showUi(); root.classList.remove('intro'); }
   }).observe(root, { attributes: true, attributeFilter: ['data-state'] });
 
   applyConcept(concept);
+  blobOf('loop');       // сначала лёгкая петля главной
   playIntro();
-  // все три ролика заранее в память: после первого визита они приходят из офлайн-кэша мгновенно
-  ORDER.forEach(preload);
+  // ролики эффектов качаем чуть позже, чтобы не отнимать канал у главной (выбранный эффект качается сразу при выборе)
+  setTimeout(function () { ORDER.forEach(preload); }, 2500);
 })();
 </script>
 </body>
