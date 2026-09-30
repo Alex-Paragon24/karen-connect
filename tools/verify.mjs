@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || '/opt/node22/lib/node_modules/playwright');
+const { PNG } = require('pngjs');
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SITE = path.join(ROOT, 'site');
 const OUT = process.env.OUT || path.join(ROOT, 'tools', 'out');
@@ -187,6 +188,7 @@ await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: 40
 const s0 = Date.now();
 await sp.goto(BASE, { waitUntil: 'domcontentloaded' });
 report.steps.slowDomContentLoadedMs = Date.now() - s0;
+await sp.touchscreen.tap(195, 300);   // торопимся, как Karen: тап пропускает интро
 await sp.tap(`.tile[data-concept="${keys[0]}"]`);
 await tapStage(sp);
 await stateIs(sp, 'settled', 30000);
@@ -194,6 +196,81 @@ await sp.waitForTimeout(1200);
 report.steps.slowTapToQrMs = Date.now() - s0;
 await shot(sp, '08-slow-first-visit');
 await slow.close();
+
+// ---------- 4. Режим энергосбережения iPhone (эмуляция): видео стартует только от касания ----------
+// Главная должна ожить сама: интро и петля через <img>. Chromium не умеет mp4 в <img>, поэтому локально
+// подменяем их на WebP-двойники (python3 tools/make-img-twins.py). Без двойников (и на живом сайте)
+// проверяем запасной вариант: главная показывается сразу, петля идёт от первого касания.
+const lowPowerPlay = () => {
+  const orig = HTMLMediaElement.prototype.play;
+  HTMLMediaElement.prototype.play = function () {
+    if (navigator.userActivation && navigator.userActivation.isActive) return orig.call(this);
+    return Promise.reject(new DOMException('Low Power Mode (эмуляция)', 'NotAllowedError'));
+  };
+};
+const imgTwins = () => {
+  const d = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src');
+  Object.defineProperty(HTMLImageElement.prototype, 'src', { configurable: true, enumerable: true,
+    get() { return d.get.call(this); },
+    set(v) {
+      if (this.id === 'homeIntroImg' || this.id === 'homeLoopImg')
+        v = '/media/home/' + (this.id === 'homeIntroImg' ? 'intro' : 'loop') + '.test.webp';
+      d.set.call(this, v);
+    } });
+};
+// средний цвет квадрата 20×20 слева на 40% высоты: там нет текста и затемнения
+async function probe(p) {
+  const png = PNG.sync.read(await p.screenshot({ clip: { x: 8, y: 330, width: 20, height: 20 } }));
+  const sum = [0, 0, 0], n = png.width * png.height;
+  for (let i = 0; i < png.data.length; i += 4) { sum[0] += png.data[i]; sum[1] += png.data[i + 1]; sum[2] += png.data[i + 2]; }
+  return sum.map((x) => Math.round(x / n));
+}
+const hasTwins = !process.env.BASE_URL && fs.existsSync(path.join(SITE, 'media/home/intro.test.webp'));
+const lp = await newContext();
+await lp.addInitScript(lowPowerPlay);
+if (hasTwins) await lp.addInitScript(imgTwins);
+const lpp = await lp.newPage();
+watch(lpp, 'lowpower');
+const L = report.steps.lowPower = { imgTwins: hasTwins };
+const l0 = Date.now();
+await lpp.goto(BASE, { waitUntil: 'load' });
+if (hasTwins) {
+  await lpp.waitForFunction(() => document.documentElement.classList.contains('img-intro'), null, { timeout: 8000 });
+  L.introImgStartMs = Date.now() - l0;
+  L.htmlOpacity = await lpp.evaluate(() => getComputedStyle(document.documentElement).opacity);
+  await lpp.waitForTimeout(1000);
+  L.introColorAt1s = await probe(lpp);
+  await lpp.waitForTimeout(2000);
+  L.introColorAt3s = await probe(lpp);
+  await shot(lpp, '09-lowpower-intro');
+  await lpp.waitForFunction(() => document.documentElement.classList.contains('img-loop') && !document.documentElement.classList.contains('img-intro'), null, { timeout: 6000 });
+  L.loopImgAtMs = Date.now() - l0;
+  await lpp.waitForTimeout(1500);
+  L.loopColor = await probe(lpp);
+  L.uiShown = await lpp.evaluate(() => document.documentElement.classList.contains('intro-ui') && !document.documentElement.classList.contains('home-intro'));
+  await shot(lpp, '10-lowpower-loop');
+} else {
+  await lpp.waitForFunction(() => document.documentElement.classList.contains('intro-ui'), null, { timeout: 10000 });
+  L.homeShownMs = Date.now() - l0;
+  await lpp.waitForTimeout(1600);
+  await shot(lpp, '09-lowpower-static');
+  await lpp.touchscreen.tap(195, 300);   // касание по фону главной запускает петлю
+  L.loopAfterTouch = await lpp.waitForFunction(() => { const v = document.getElementById('homeLoop'); return !v.paused && v.currentTime > 0; }, null, { timeout: 5000 }).then(() => true, () => false);
+}
+// reveal запускается касанием, поэтому работает и в энергосбережении; после него петля главной снова идёт
+await lpp.waitForFunction((k) => performance.getEntriesByType('resource').some((e) => e.name.endsWith(`/media/${k}/reveal.mp4`) && e.responseEnd > 0), keys[0], { timeout: 30000 }).catch(() => {});
+await lpp.tap(`.tile[data-concept="${keys[0]}"]`);
+await stateIs(lpp, 'ready');
+await lpp.evaluate(() => { window.__played = false; document.getElementById('video').addEventListener('playing', () => { window.__played = true; }, { once: true }); });
+await tapStage(lpp);
+await stateIs(lpp, 'settled');
+L.revealPlayed = await lpp.evaluate(() => window.__played);
+await lpp.waitForTimeout(800);
+await lpp.tap('#btnEffects');
+await stateIs(lpp, 'choose');
+await lpp.waitForTimeout(800);
+L.loopBackOnHome = await lpp.evaluate((img) => img ? document.documentElement.classList.contains('img-loop') : true, hasTwins);
+await lp.close();
 
 await browser.close();
 if (server) server.close();

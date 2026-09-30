@@ -1,7 +1,7 @@
 // Service Worker: страница работает без интернета после первого открытия.
 // Стратегия: всё своё отдаём из кэша, в фоне докачиваем недостающее. Чужие домены не трогаем (их и нет).
 /*BUILD:START*/
-const CACHE = 'kc-3c75773dc6';
+const CACHE = 'kc-755bd34b6c';
 const CORE = ["/","/manifest.webmanifest","/fonts/playfair-display-latin-600-italic.woff2","/fonts/playfair-display-latin-400-italic.woff2","/fonts/lato-latin-400-normal.woff2","/fonts/lato-latin-700-normal.woff2","/icons/apple-touch-icon.png","/icons/icon-192.png"];
 const EXTRA = ["/media/home/poster.webp","/media/ace/thumb.webp","/media/ace/start.webp","/media/ace/end.webp","/media/marquee/thumb.webp","/media/marquee/start.webp","/media/marquee/end.webp","/media/jackpot/thumb.webp","/media/jackpot/start.webp","/media/jackpot/end.webp","/media/home/loop.mp4","/media/home/intro.mp4","/media/ace/reveal.mp4","/media/marquee/reveal.mp4","/media/jackpot/reveal.mp4","/icons/icon-512.png"];
 /*BUILD:END*/

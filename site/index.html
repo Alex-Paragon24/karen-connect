@@ -185,16 +185,18 @@
   /* iPhone не запускает само «невидимое» видео, поэтому петля видна всегда (до старта показывает постер) */
   #homeIntro { opacity: 0; background: #140e0a; transition: opacity .45s ease; }
   html.intro-live #homeIntro, html.intro-wait #homeIntro { opacity: 1; transition: none; }
-  .tap-begin { position: absolute; left: 0; right: 0; bottom: calc(24vh + var(--safe-b)); opacity: 0; pointer-events: none;
-    font: 400 12px/1 'Lato', sans-serif; letter-spacing: .28em; text-transform: uppercase; color: var(--muted); transition: opacity .4s ease; }
-  .tap-begin i { display: inline-block; width: 6px; height: 6px; margin: 0 10px 1px 0; border-radius: 50%;
-    background: var(--gold-bright); box-shadow: 0 0 10px var(--gold-bright); vertical-align: middle; }
-  html.tap-begin .tap-begin { opacity: 1; animation: breathe 2.6s ease-in-out infinite; }
+  /* запасной путь для iPhone в режиме энергосбережения: те же mp4 внутри <img> (Safari играет их как gif).
+     Интро и петля видны только когда играют, иначе картинка не декодируется зря */
+  #homeIntroImg, #homeLoopImg { opacity: 0; visibility: hidden; }
+  #homeIntroImg { background: #140e0a; transition: opacity .45s linear, visibility 0s linear .45s; }
+  html.img-intro #homeIntroImg, html.img-loop #homeLoopImg { opacity: 1; visibility: visible; transition: none; }
   /* затемнение снизу: подписи плиток и переключатели читаются на любом кадре */
   .home-bg::after { content: ''; position: absolute; inset: 0;
     background: linear-gradient(to bottom, rgba(20, 14, 10, .35) 0%, transparent 18%, transparent 46%, rgba(20, 14, 10, .78) 72%, rgba(20, 14, 10, .94) 100%); }
   /* интро: текст и плитки появляются под свет прожектора */
   html.home-intro .chooser .eyebrow, html.home-intro .chooser .name, html.home-intro .chooser .lead, html.home-intro .tiles, html.home-intro .prefs { opacity: 0; transform: translateY(14px); }
+  /* пока плитки не проявились, тап по ним пропускает интро, а не выбирает эффект вслепую */
+  html.home-intro:not(.intro-ui) .tiles, html.home-intro:not(.intro-ui) .prefs { pointer-events: none; }
   html.home-intro.intro-text .chooser .eyebrow, html.home-intro.intro-text .chooser .name,
   html.home-intro.intro-ui .chooser .lead, html.home-intro.intro-ui .tiles, html.home-intro.intro-ui .prefs { opacity: 1; transform: none; }
   .chooser .eyebrow, .chooser .name, .chooser .lead, .tiles, .prefs { transition: opacity 1s ease, transform 1.1s var(--ease); }
@@ -265,9 +267,10 @@
   <div class="home-bg" aria-hidden="true">
     <div class="home-poster"></div>
     <video id="homeLoop" muted playsinline loop preload="none" poster="/media/home/poster.webp" disablepictureinpicture disableremoteplayback></video>
+    <img id="homeLoopImg" alt="">
     <video id="homeIntro" muted playsinline preload="none" disablepictureinpicture disableremoteplayback></video>
+    <img id="homeIntroImg" alt="">
   </div>
-  <p class="tap-begin"><i></i>Tap to begin</p>
   <p class="eyebrow">Let's connect</p>
   <h1 class="name"><span class="glow" aria-hidden="true">Karen</span><span class="ink">Karen</span></h1>
   <p class="lead">Choose the reveal</p>
@@ -535,14 +538,21 @@
   }
 
   // ---------- Главная: интро из Higgsfield при каждом открытии, потом бесшовная петля ----------
+  // Обычно играют <video>. В режиме энергосбережения iPhone не запускает видео без касания,
+  // тогда те же mp4 играют внутри <img>: Safari показывает их как gif, запрет на картинки не действует.
   var homeIntro = $('homeIntro'), homeLoop = $('homeLoop');
+  var introImg = $('homeIntroImg'), loopImg = $('homeLoopImg');
+  var INTRO_DUR = 5.04;   // длина интро в секундах
+  var imgMode = false;    // true: главная играет через <img>
+  var imgViaBlob = false; // true: <img> открыл mp4 только из blob, петлю берём так же
   var homeClips = {};
   var homeLoopSrc = null;
   function blobOf(name) {
     if (!homeClips[name]) {
       homeClips[name] = fetch('/media/home/' + name + '.mp4')
         .then(function (r) { if (!r.ok) throw new Error(r.status); return r.blob(); })
-        .then(function (b) { return URL.createObjectURL(b); });
+        // тип нужен, чтобы <img> понял, что внутри mp4
+        .then(function (b) { return URL.createObjectURL(b.type ? b : new Blob([b], { type: 'video/mp4' })); });
       homeClips[name].then(function (u) { if (name === 'loop') homeLoopSrc = u; }, function () {});
     }
     return homeClips[name];
@@ -554,48 +564,109 @@
   function startLoop() {
     if (!anim) return;
     blobOf('loop').then(function (src) {
+      if (state !== 'choose') return;
+      if (imgMode) {
+        var u = imgViaBlob ? src : '/media/home/loop.mp4';
+        if (loopImg.getAttribute('src') !== u) loopImg.src = u;
+        root.classList.add('img-loop');
+        return;
+      }
       if (homeLoop.getAttribute('src') !== src) homeLoop.src = src;
-      if (state !== 'choose' || !homeLoop.paused) return;
-      tryPlay(homeLoop).catch(function () {});
+      if (homeLoop.paused) tryPlay(homeLoop).catch(function () {});
     }).catch(function () {});
   }
-  // iOS (режим энергосбережения и т.п.) пускает видео только от касания: первым же тапом «разблокируем» петлю
+  // если и картинка не помогла: первым же касанием запускаем петлю видео
   function unlockOnGesture() {
-    if (state !== 'choose' || root.classList.contains('intro-live')) return;
+    if (imgMode || state !== 'choose' || root.classList.contains('intro-live')) return;
     if (homeLoopSrc && homeLoop.paused) {
       if (homeLoop.getAttribute('src') !== homeLoopSrc) homeLoop.src = homeLoopSrc;
       tryPlay(homeLoop).catch(function () {});
     }
   }
-  document.addEventListener('touchstart', unlockOnGesture, { capture: true, passive: true });
-  document.addEventListener('pointerdown', unlockOnGesture, { capture: true, passive: true });
+  ['touchstart', 'pointerdown', 'touchend', 'click'].forEach(function (t) {
+    document.addEventListener(t, unlockOnGesture, { capture: true, passive: true });
+  });
 
   var introDone = false;
   function endIntro() {
+    if (introDone) return;
     introDone = true;
-    root.classList.remove('intro-live', 'intro-wait', 'tap-begin');
+    try { homeIntro.pause(); } catch (e) {}
+    // в режиме <img> интро гаснет за 0.45 с, под ним уже идёт петля с того же кадра
+    root.classList.remove('intro-live', 'intro-wait', 'img-intro');
     showUi();
     startLoop();
-    setTimeout(function () { root.classList.remove('home-intro'); }, 1400);
+    setTimeout(function () {
+      root.classList.remove('home-intro');
+      introImg.removeAttribute('src');
+    }, 1400);
   }
-  function runIntro(fromGesture) {
+  function uiTimeline() {
+    // имя проявляется под свет прожектора, плитки чуть позже
+    setTimeout(function () { root.classList.add('intro-text'); }, 1900);
+    setTimeout(function () { root.classList.add('intro-ui'); }, 3200);
+  }
+  function runIntro(src) {
+    homeIntro.src = src;
     root.classList.add('intro-live');   // видео видно в момент запуска, иначе iPhone его не пустит
-    // в том же касании «разблокируем» петлю, чтобы после интро она пошла сама
-    if (fromGesture && homeLoopSrc) {
-      if (homeLoop.getAttribute('src') !== homeLoopSrc) homeLoop.src = homeLoopSrc;
-      tryPlay(homeLoop).then(function () { homeLoop.pause(); homeLoop.currentTime = 0; }, function () {});
-    }
-    tryPlay(homeIntro).then(function () {
-      root.classList.remove('tap-begin');
-      // имя проявляется под свет прожектора, плитки чуть позже
-      setTimeout(function () { root.classList.add('intro-text'); }, 1900);
-      setTimeout(function () { root.classList.add('intro-ui'); }, 3200);
-    }, function () {
+    var decided = false;
+    function asImage() {
+      decided = true;
+      try { homeIntro.pause(); } catch (e) {}
       root.classList.remove('intro-live');
-      if (fromGesture) { endIntro(); return; }
-      // автозапуск запрещён: показываем имя и просим тап, интро стартует от касания
-      root.classList.add('tap-begin', 'intro-text');
+      if (!introDone) introAsImage(src);
+    }
+    // страховка: если видео так и не стартовало за 2 с, тоже переходим на <img>
+    var watchdog = setTimeout(function () { if (!decided) asImage(); }, 2000);
+    tryPlay(homeIntro).then(function () {
+      if (decided) { try { homeIntro.pause(); } catch (e) {} return; }
+      decided = true;
+      clearTimeout(watchdog);
+      uiTimeline();
+    }, function () {
+      if (decided) return;
+      clearTimeout(watchdog);
+      asImage();
     });
+  }
+  // запасной путь: интро через <img>. Сначала по обычной ссылке (так это описывает Apple, файл уже в кэше),
+  // не открылось: из blob. Конца ролика картинка не сообщает, поэтому ведём его по таймеру и за полсекунды
+  // до конца плавно передаём петле (последние кадры интро почти совпадают с её первым кадром)
+  function introAsImage(blobSrc) {
+    imgMode = true;
+    var started = false;
+    var tries = ['/media/home/intro.mp4', blobSrc];
+    function fail() {
+      if (started) return;
+      started = true;
+      imgMode = false;
+      introImg.removeAttribute('src');
+      endIntro();
+    }
+    function next() {
+      var u = tries.shift();
+      if (!u) { fail(); return; }
+      imgViaBlob = u === blobSrc;
+      introImg.src = u;
+    }
+    var guard = setTimeout(fail, 3000);
+    introImg.onerror = function () { if (!started) next(); };
+    introImg.onload = function () {
+      if (started) return;
+      if (!introImg.naturalWidth) { next(); return; }
+      clearTimeout(guard);
+      var go = function () {
+        if (started) return;
+        started = true;
+        if (introDone) return;
+        root.classList.add('img-intro');   // анимация картинки стартует с первой отрисовки
+        root.classList.remove('intro-wait');
+        uiTimeline();
+        setTimeout(endIntro, (INTRO_DUR - 0.5) * 1000);
+      };
+      if (introImg.decode) introImg.decode().then(go, go); else go();
+    };
+    next();
   }
   // возвращает промис: интро скачано (или ждать больше нечего), после этого можно качать остальное
   function playIntro() {
@@ -603,15 +674,13 @@
     root.classList.add('home-intro', 'intro-wait');
     return new Promise(function (settle) {
       // медленная сеть: ждём интро не дольше 5 с, потом сразу главная с петлёй
-      var guard = setTimeout(function () { if (!introDone) endIntro(); settle(); }, 5000);
+      var guard = setTimeout(function () { endIntro(); settle(); }, 5000);
       blobOf('intro').then(function (src) {
         clearTimeout(guard);
         settle();
         blobOf('loop');   // петля качается следом: в первые секунды весь канал у интро
-        if (introDone) return;
-        homeIntro.src = src;
-        runIntro(false);
-      }).catch(function () { clearTimeout(guard); settle(); if (!introDone) endIntro(); });
+        if (!introDone) runIntro(src);
+      }).catch(function () { clearTimeout(guard); settle(); endIntro(); });
     });
   }
   // петля стартует чуть раньше конца интро: под ним уже тот же кадр, шва не видно
@@ -619,21 +688,22 @@
     if (homeIntro.duration && homeIntro.currentTime > homeIntro.duration - 0.4) startLoop();
   });
   homeIntro.addEventListener('ended', endIntro);
-  // тап на главной: «Tap to begin» запускает интро, во время интро тап его пропускает
+  // тап на главной во время интро (или пока оно качается) пропускает его
   $('chooser').addEventListener('click', function () {
-    if (root.classList.contains('tap-begin')) { root.classList.remove('tap-begin'); runIntro(true); return; }
-    // тап, пока интро ещё качается: не ждём
-    if (root.classList.contains('intro-wait') && !root.classList.contains('intro-live')) { endIntro(); return; }
-    if (root.classList.contains('intro-live') && !root.classList.contains('intro-ui')) {
-      try { homeIntro.pause(); } catch (e) {}
-      endIntro();
-    }
+    if (root.classList.contains('home-intro') && !root.classList.contains('intro-ui')) endIntro();
   });
   // петля играет только на главной: экономим батарею
   new MutationObserver(function () {
     if (state === 'choose') { startLoop(); return; }
     try { homeLoop.pause(); homeIntro.pause(); } catch (e) {}
-    if (root.classList.contains('home-intro')) { introDone = true; root.classList.remove('intro-live', 'intro-wait', 'tap-begin'); showUi(); root.classList.remove('home-intro'); }
+    loopImg.removeAttribute('src');
+    root.classList.remove('img-loop');
+    if (root.classList.contains('home-intro')) {
+      introDone = true;
+      introImg.removeAttribute('src');
+      root.classList.remove('intro-live', 'intro-wait', 'img-intro', 'home-intro');
+      showUi();
+    }
   }).observe(root, { attributes: true, attributeFilter: ['data-state'] });
 
   applyConcept(concept);

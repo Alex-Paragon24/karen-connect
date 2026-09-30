@@ -36,7 +36,13 @@ Chromium из Playwright не играет H.264. Чтобы `verify.mjs` про
 `.mp4` кладётся копия `.test.webm` (в деплой не попадает, `site/media/` не в git):
 ```bash
 for f in site/media/*/*.mp4; do ffmpeg -loglevel error -y -i "$f" -c:v libvpx-vp9 -b:v 0 -crf 34 -an "${f%.mp4}.test.webm"; done
+python3 tools/make-img-twins.py   # WebP-двойники для проверки режима энергосбережения (см. ниже)
 ```
+
+Режим энергосбережения iPhone (Low Power Mode) запрещает видео стартовать без касания. Тогда главная
+переключается на запасной путь: те же `intro.mp4` и `loop.mp4` играют внутри `<img>` (Safari показывает
+mp4 в картинке как gif, запрет на них не действует). `verify.mjs` эмулирует этот режим в Chromium.
+Reveal эффектов запускается тапом, поэтому работает в любом режиме.
 
 Новые медиа: упаковать папку `media/` в tar, загрузить туда, где есть прямая ссылка, записать
 `URL SHA256` в `tools/media.lock`, запустить `node tools/build.mjs` (обновит версию офлайн-кэша) и запушить.
