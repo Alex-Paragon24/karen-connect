@@ -325,7 +325,9 @@
   var video = $('video');
   var reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   var concept = CONCEPTS[root.getAttribute('data-concept')] ? root.getAttribute('data-concept') : ORDER[0];
-  var anim = !reduced && lsGet('kc:anim') !== '0';
+  // Анимация: по умолчанию включена; явный выбор Karen в тумблере главнее системного «Уменьшения движения»
+  var animPref = lsGet('kc:anim');
+  var anim = animPref === '1' ? true : animPref === '0' ? false : !reduced;
   var state = root.getAttribute('data-state') || 'choose';
   var clips = {};      // эффект -> blob: URL готового ролика
   var loading = {};
@@ -583,7 +585,7 @@
   }
   function playIntro() {
     var last = +(lsGet('kc:intro') || 0);
-    if (!anim || reduced || Date.now() - last < 12 * 3600 * 1000) { showUi(); startLoop(); return; }
+    if (!anim || Date.now() - last < 12 * 3600 * 1000) { showUi(); startLoop(); return; }
     root.classList.add('intro');
     var done = false;
     // слабая сеть: если интро не скачалось за 2 с, не заставляем ждать
