@@ -10,7 +10,10 @@
 <meta name="theme-color" content="#1a1410">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<!-- «black», а не «black-translucent»: в iOS 26 в режиме приложения прозрачная строка состояния укорачивает
+     окно на её высоту (~59 pt), и внизу остаётся полоса, куда страница не может рисовать. С «black» страница
+     начинается под часами и доходит до самого низа экрана. -->
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Karen">
 <meta name="format-detection" content="telephone=no">
 <meta property="og:type" content="website">
