@@ -28,6 +28,11 @@ for (let y = 0; y < n; y++) {
   }
 }
 const total = n + QUIET * 2;
+// та же матрица текстом (строки из 0 и 1 через запятую): её вклеивают в финальные кадры видео
+// (networking-card/scripts/composite_qr.py в репо moments), чтобы QR в ролике и на странице совпадал модуль в модуль
+fs.mkdirSync(path.join(ROOT, 'tools', 'out'), { recursive: true });
+fs.writeFileSync(path.join(ROOT, 'tools', 'out', 'qr-matrix.txt'),
+  Array.from({ length: n }, (_, y) => Array.from({ length: n }, (_, x) => (dark(x, y) ? '1' : '0')).join('')).join(',') + '\n');
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${total} ${total}" shape-rendering="crispEdges" aria-hidden="true"><rect width="${total}" height="${total}" fill="#fff"/><path fill="#000" d="${d}"/></svg>`;
 
 // ---------- 2. Позиции QR поверх кадра для каждого эффекта ----------
